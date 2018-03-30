@@ -1,0 +1,3 @@
+[submodule "cice"]
+	path = cice
+	url = https://github.com/jackiedinh8/libcice.git
