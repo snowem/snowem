@@ -75,7 +75,7 @@ snowem <path-to>/snowem.conf
 
 ## A Quick Start
 
-Steps to integrate video streams:
+Steps to integrate video streams using [javascript sdk](https://github.com/snowem/sdkjs).
 
 **Step 1**: Integrate directly SnowSDK javascript sdk into your web application.    
 When SnowSDK is loaded, it invokes _snowAsyncInit_ if it is defined. Once it is called, you can initlialize SnowSDK with _init_ function. The _init_ function requires domain name or ip address of Snowem Websocket Service.
