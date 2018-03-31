@@ -174,6 +174,6 @@ peer.play(channelid);
 
 ### Further Resource
 
-Check out our javascript sdk [here](https://github.com/snowem/sdkjs) for more examples.  .  
+Check out our javascript sdk [here](https://github.com/snowem/sdkjs) for more examples.   
 For full documentation, check [here](https://docs.snowem.io/).  
 
