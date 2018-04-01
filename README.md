@@ -4,6 +4,8 @@ Snowem is a lightweight live streaming server, based on webrtc technology. Basic
  * `Websocket Sevrer` plays a role of signaling service in WebRTC stack.
  * `Media Server` is basically SFU in WebRTC stack, it handles ICE protocol and forward media streams among peers.
 
+Check [the official site](https://snowem.io/) for more details and demo.
+
 Let's start to setup Snowem.
 
 ## Compile and setup Snowem
