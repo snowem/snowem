@@ -1,3 +1,6 @@
 [submodule "cice"]
 	path = cice
 	url = https://github.com/jackiedinh8/libcice.git
+[submodule "html"]
+	path = html
+	url = https://github.com/snowem/sdkjs.git
