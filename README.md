@@ -15,7 +15,6 @@ Snowem depends on the following libraries to build:
  * libopenssl.  
  * libevent v2.1.xxx with openssl support.  
  * libnettle.  
- * libjansson.  
  * libsofia-sip-ua.  
  * libsrtp.  
  * libconfig.
@@ -25,9 +24,9 @@ Notes:
  * on Ubuntu system, one may install the following packages:
 
 ```
-apt-get install libssl1.0.0 libssl-dev libevent-dev libsofia-sip-ua-dev\
-libsofia-sip-ua0 libsrtp0 libsrtp0-dev libjansson-dev libjansson4\
-libnettle6 nettle-dev libconfig9 libconfig-dev
+apt-get install libssl1.0.0 libssl-dev libevent-dev libsofia-sip-ua-dev \
+libsofia-sip-ua0 libsrtp0 libsrtp0-dev libnettle6 nettle-dev \
+libconfig9 libconfig-dev
 ```
  
  * for installing libevent 2.1.xx, one may do the following:  

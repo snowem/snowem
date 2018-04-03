@@ -124,15 +124,6 @@ else ()
    MESSAGE(FATAL_ERROR SRTP not found)
 endif ()
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindJansson.cmake)
-if (${JANSSON_FOUND})
-   target_include_directories(snowem PUBLIC ${JANSSON_INCLUDE_DIRS})
-   MESSAGE(STATUS "jansson include: ${JANSSON_INCLUDE_DIRS}")
-   MESSAGE(STATUS "jansson lib:  ${JANSSON_LIBRARIES}")
-else ()
-   MESSAGE(FATAL_ERROR JANSSON not found)
-endif ()
-
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindNettle.cmake)
 if (${NETTLE_FOUND})
    target_include_directories(snowem PUBLIC ${NETTLE_INCLUDE_DIRS})
@@ -151,13 +142,6 @@ else ()
    MESSAGE(FATAL_ERROR LIBCONFIG not found)
 endif ()
 
-#include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFFmpeg.cmake)
-#if (${FFMPEG_FOUND})
-#   target_include_directories(snowem PUBLIC ${FFMPEG_INCLUDE_DIR})
-#else (${FFMPEG_FOUND})
-#   MESSAGE(FATAL_ERROR FFMPEG not found)
-#endif (${FFMPEG_FOUND})
-
 target_link_libraries(snowem PUBLIC
   cice_static
   wslay
@@ -168,7 +152,6 @@ target_link_libraries(snowem PUBLIC
   ${EVENT_OPENSSL_LIBRARIES}
   ${SOFIASIPUA_LIBRARIES}
   ${SRTP_LIBRARIES}
-  ${JANSSON_LIBRARIES}
   ${NETTLE_LIBRARIES}
   ${CONFIG_LIBRARIES}
 )
