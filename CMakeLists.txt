@@ -183,7 +183,7 @@ install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E make_directory ${HTML_
 install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E make_directory ${DATA_SNOWEM_DIR})")
 install(CODE "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E make_directory ${LOG_SNOWEM_DIR})")
 install(FILES conf/snowem.conf conf/example.crt conf/example.key DESTINATION ${SNOWEM_PREFIX_PATH})
-install(FILES html/index.html html/snowsdk.js html/adapter.js DESTINATION ${HTML_SNOWEM_DIR})
+install(FILES html/index.html html/js/snowsdk.js html/js/adapter.js html/js/app.js DESTINATION ${HTML_SNOWEM_DIR})
 install(TARGETS snowem DESTINATION /usr/local/bin)
 
 set(CPACK_PACKAGE_NAME "snowem")
