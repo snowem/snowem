@@ -164,6 +164,25 @@ snw_http_adapjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
 }
 
 void
+snw_http_app_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
+  snw_log_t *log = ctx->log;
+  struct evbuffer *buf = 0;
+
+  evhttp_add_header(evhttp_request_get_output_headers(req),
+                    "Content-type", "application/javascript; charset=utf-8");
+
+  buf = snw_http_get_buf_by_file(ctx,"/var/snowem/html/app.js");
+  if (buf) {
+    evhttp_send_reply(req, HTTP_OK, "OK", buf);
+    evbuffer_free(buf);
+  } else {
+    evhttp_send_error(req,HTTP_NOTFOUND,"File not found");
+  }
+
+  return;
+}
+
+void
 snw_process_http_get(snw_http_context_t *ctx, struct evhttp_request *req) {
   snw_log_t *log = ctx->log;
 
@@ -177,6 +196,8 @@ snw_process_http_get(snw_http_context_t *ctx, struct evhttp_request *req) {
     snw_http_snowjs_resp(ctx,req);
   } else if (!strcmp(evhttp_request_uri(req),"/adapter.js")) {
     snw_http_adapjs_resp(ctx,req);
+  } else if (!strcmp(evhttp_request_uri(req),"/app.js")) {
+    snw_http_app_resp(ctx,req);
   } else {
     ERROR(log, "not handle request, req=%s", evhttp_request_uri(req));
   }
@@ -298,6 +319,7 @@ snw_process_http_request(struct evhttp_request *req, void *arg) {
   evhttp_cmd_type type;
 
   type = evhttp_request_get_command(req);
+  DEBUG(log, "get http method, type=%u", type);
   switch(type) {
     case EVHTTP_REQ_GET:
       snw_process_http_get(ctx,req);
@@ -437,6 +459,7 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
   http_ctx->httpd = evhttp_new(http_ctx->ev_base);
   if (!http_ctx->httpd) exit(-3);
 
+  //FIXME: ipaddress
   if (evhttp_bind_socket(http_ctx->httpd, "0.0.0.0", 8868) != 0)
     exit(-4);
 
@@ -448,6 +471,7 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
       EVHTTP_REQ_PUT |
       EVHTTP_REQ_DELETE);
 
+  //if (!ctx->test_webserver_enabled)
   evhttp_set_bevcb(http_ctx->httpd, snw_setup_connection_https, http_ctx);
   evhttp_set_gencb(http_ctx->httpd, snw_process_http_request, http_ctx);
 
