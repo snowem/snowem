@@ -1,3 +1,19 @@
+/*
+ * (C) Copyright 2017 Jackie Dinh <jackiedinh8@gmail.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
 
 #include <sofia-sip/sdp.h>
 
@@ -351,7 +367,6 @@ ice_generate_candidate_attribute(snw_ice_session_t *session, char *sdp,
 
       if (c->type == ICE_CANDIDATE_TYPE_HOST) {
          if (c->transport == ICE_CANDIDATE_TRANSPORT_UDP) {
-            //snprintf(buffer, 100, "a=candidate:%s %d %s %d %s %d typ host\r\n",
             snprintf(buffer, 100, "a=candidate:%s %d %s %d %s %d typ host generation 0\r\n",
                   c->foundation, c->component_id, "udp", c->priority, address, port);
          } else {
