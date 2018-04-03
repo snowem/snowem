@@ -47,12 +47,9 @@ snw_mempool_create(size_t chunk_size, size_t total_size, int is_hugepage)
    snw_mempool_t *mp;
 
    if (chunk_size < sizeof(mem_chunk)) {
-      //printf("The chunk size should be larger than %lu. current: %d\n",
-      //      sizeof(mem_chunk), chunk_size);
       return NULL;
    }
    if (chunk_size % 4 != 0) {
-      //printf("The chunk size should be multiply of 4!\n");
       return NULL;
    }
 
@@ -72,15 +69,12 @@ snw_mempool_create(size_t chunk_size, size_t total_size, int is_hugepage)
    if (is_hugepage == 1 ) {
       mp->mp_startptr = get_huge_pages(total_size, NULL);
       if (!mp->mp_startptr) {
-         //printf("posix_memalign failed, size=%ld\n", total_size);
          assert(0);
          if (mp) free(mp);
          return (NULL);
       }
    } else {
 #endif
-      //printf("posix_memalign get mem, p=%p(%p), size=%ld, pagesize=%d\n", 
-      //       &mp->mp_startptr,mp, total_size, getpagesize());
       res = posix_memalign((void **)&mp->mp_startptr, getpagesize(), total_size);
       if (res != 0) {
          printf("posix_memalign failed, size=%ld\n", total_size);
@@ -165,8 +159,4 @@ snw_mempool_capacity(snw_mempool_t *mp)
 {
    return mp->mp_free_chunks;
 }
-
-
-
-
 
