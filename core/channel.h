@@ -21,8 +21,9 @@
 extern "C" {
 #endif
 
+#include <sys/queue.h>
+
 #include "cache.h"
-#include "linux_list.h"
 #include "types.h"
 
 #define SNW_CORE_CHANNEL_USER_NUM_MAX 100
@@ -31,8 +32,9 @@ extern "C" {
 typedef struct snw_peer_list snw_peer_list_t;
 struct snw_peer_list {
    uint32_t peers[SNW_CORE_CHANNEL_USER_NUM_MAX];
-   struct list_head list;
+   LIST_ENTRY(snw_peer_list) list;
 };
+typedef LIST_HEAD(peerlist_head, snw_flow) peerlist_head_t;
 
 /* Channel type */
 enum {

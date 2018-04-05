@@ -24,21 +24,23 @@ extern "C" {
 
 #include <stdint.h>
 
-#include "linux_list.h"
+#include "core/bsd_queue.h"
 
 #define MAX_CHANNEL_NUM 10000
 
 typedef struct snw_elem snw_elem_t;
 struct snw_elem {
-   struct list_head  list;
+   LIST_ENTRY(snw_elem) list;
    uint32_t  flowid;
    void     *obj;
 };
+typedef LIST_HEAD(elem_head, snw_elem) elem_head_t;
+
 
 typedef struct snw_set snw_set_t;
 struct snw_set {
-   struct list_head  freelist;
-   struct list_head  usedlist;
+   elem_head_t       freelist;
+   elem_head_t       usedlist;
    uint32_t          totalnum;
    uint32_t          usednum;
    uint32_t          baseidx;

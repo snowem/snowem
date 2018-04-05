@@ -22,8 +22,8 @@
 extern "C" {
 #endif
 
+#include "bsd_queue.h"
 #include "types.h"
-#include "linux_list.h"
 
 /* Built-in module (msg) type */
 enum {
@@ -119,13 +119,13 @@ struct snw_module_methods {
 };
 
 struct snw_module {
-   struct list_head      list;
-   uint32_t              type; //module type
-   uint32_t              version;
-   char                 *name;
-   char                 *sofile;
-   void                 *ctx;
-   void                 *data;
+   LIST_ENTRY(snw_module) list;
+   uint32_t               type; //module type
+   uint32_t               version;
+   char                  *name;
+   char                  *sofile;
+   void                  *ctx;
+   void                  *data;
 
    snw_module_methods_t *methods;
 
@@ -134,6 +134,7 @@ struct snw_module {
 
    char                 reserve[128];
 };
+typedef LIST_HEAD(module_head, snw_module) module_head_t;
 
 void
 snw_module_init(snw_context_t *ctx);

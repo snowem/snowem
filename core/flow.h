@@ -24,22 +24,28 @@ extern "C" {
 
 #include <stdint.h>
 
-#include "linux_list.h"
+#include "core/bsd_queue.h"
 
 #define SNW_CORE_FLOW_BASE_IDX 33212368
 #define SNW_CORE_FLOW_NUM_MAX  10*1024
 
+#define LIST_INSERT_TAIL(head,type,elm,field) do {\
+  type *listelm = LIST_FIRST(head);\
+  LIST_INSERT_BEFORE(listelm, elm, field);\
+} while(0);
+
 typedef struct snw_flow snw_flow_t;
 struct snw_flow {
-   struct list_head  list;
+   LIST_ENTRY(snw_flow) list;
    uint32_t  flowid;
    void     *obj;
 };
+typedef LIST_HEAD(flow_head, snw_flow) flow_head_t;
 
 typedef struct snw_flowset snw_flowset_t;
 struct snw_flowset {
-   struct list_head  freelist;
-   struct list_head  usedlist;
+   flow_head_t freelist;
+   flow_head_t usedlist;
    uint32_t          totalnum;
    uint32_t          usednum;
    uint32_t          baseidx;

@@ -92,6 +92,7 @@ snw_ice_session_get(snw_ice_context_t *ctx, uint32_t flowid, int *is_new) {
    DEBUG(log,"get new session, flowid=%u, is_new=%u, ice_ctx=%p", 
          flowid, is_new, so->ice_ctx);
    memset(so, 0, sizeof(snw_ice_session_t));
+   LIST_INIT(&so->streams);
    so->flowid = flowid;
 
    return so;

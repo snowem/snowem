@@ -21,7 +21,7 @@
 #include <inttypes.h>
 
 #include "core/core.h"
-#include "core/linux_list.h"
+#include "core/bsd_queue.h"
 #include "ice/dtls.h"
 #include "ice/ice_component.h"
 #include "ice/ice_types.h"
@@ -46,17 +46,18 @@ struct snw_ice_stream {
    char remote_user[32];
    char remote_pass[64];
 
-   snw_ice_component_t  components;
-   snw_ice_component_t *rtp_component;
-   snw_ice_component_t *rtcp_component;
+   ice_component_head_t  components;
+   snw_ice_component_t  *rtp_component;
+   snw_ice_component_t  *rtcp_component;
 
    uint8_t gathering_done:1;
    uint8_t is_disable:1;
    uint8_t is_video:1;
    uint8_t reserved:5;
 
-   struct list_head list;
+   LIST_ENTRY(snw_ice_stream) list;
 };
+typedef LIST_HEAD(ice_stream_head, snw_ice_stream) ice_stream_head_t;
 
 void
 snw_stream_mempool_init(snw_ice_context_t *ctx);
@@ -68,13 +69,13 @@ void
 snw_stream_deallocate(snw_ice_context *ctx, snw_ice_stream_t* p);
 
 snw_ice_stream_t* 
-snw_stream_find(snw_ice_stream_t *head, uint32_t id);
+snw_stream_find(ice_stream_head_t *head, uint32_t id);
 
 void
-snw_stream_insert(snw_ice_stream_t *head, snw_ice_stream_t *item);
+snw_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item);
 
 void
-snw_stream_free(snw_ice_stream_t *streams, snw_ice_stream_t *stream);
+snw_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream);
 
 void
 snw_stream_print_ssrc(snw_ice_context *ctx, snw_ice_stream_t *s, const char *info);

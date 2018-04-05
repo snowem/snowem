@@ -22,6 +22,7 @@
 #include <jansson.h>
 
 #include "cice/agent.h"
+#include "core/bsd_queue.h"
 #include "core/core.h"
 #include "ice/dtls.h"
 #include "ice/ice_types.h"
@@ -49,8 +50,9 @@ struct snw_ice_component {
    rtp_slidewin_t    a_slidewin;
    rtp_slidewin_t    v_slidewin;
 
-   struct list_head  list;
+   LIST_ENTRY(snw_ice_component) list;
 };
+typedef LIST_HEAD(ice_component_head, snw_ice_component) ice_component_head_t;
 
 void
 snw_component_mempool_init(snw_ice_context_t *ctx);
@@ -62,10 +64,10 @@ void
 snw_component_deallocate(snw_ice_context_t *ctx, snw_ice_component_t* p);
 
 snw_ice_component_t*
-snw_component_find(snw_ice_component_t *head, uint32_t id);
+snw_component_find(ice_component_head_t *head, uint32_t id);
 
 void
-snw_component_insert(snw_ice_component_t *head, snw_ice_component_t *item);
+snw_component_insert(ice_component_head_t *head, snw_ice_component_t *item);
 
 #ifdef __cplusplus
 }

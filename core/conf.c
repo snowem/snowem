@@ -197,11 +197,10 @@ snw_config_init(snw_context_t *ctx, const char *file) {
 
          module = (snw_module_t*)malloc(sizeof(snw_module_t));
          if (!module) return;
-         INIT_LIST_HEAD(&module->list);
          module->name = strdup(name);
          module->type = type;
          module->sofile = strdup(sofile);
-         list_add_tail(&module->list,&ctx->modules.list);
+         LIST_INSERT_HEAD(&ctx->modules,module,list);
       }
    }
 

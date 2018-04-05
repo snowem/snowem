@@ -38,7 +38,7 @@ snw_create_context() {
       return 0;
 
    memset(ctx, 0, sizeof(*ctx));
-   INIT_LIST_HEAD(&ctx->modules.list);
+   LIST_INIT(&ctx->modules);
    return ctx; 
 }
 

@@ -48,17 +48,17 @@ snw_flowset_init(uint32_t num) {
    flowset->usednum = 0;
    //flowset->baseidx = random()%1000000;
    flowset->baseidx = SNW_CORE_FLOW_BASE_IDX;
-   INIT_LIST_HEAD(&flowset->freelist);
-   INIT_LIST_HEAD(&flowset->usedlist);
+   LIST_INIT(&flowset->freelist);
+   LIST_INIT(&flowset->usedlist);
    for (i = 1; i < num; i++) {
       flow = flowset->data + i;
-      INIT_LIST_HEAD(&flow->list);
       flow->flowid = i + flowset->baseidx;
       flow->obj = 0;
       if (random()%2) {
-         list_add(&flow->list, &flowset->freelist);
+         //TODO: insert at tail
+         LIST_INSERT_HEAD(&flowset->freelist,flow,list);
       } else {
-         list_add_tail(&flow->list, &flowset->freelist);
+         LIST_INSERT_HEAD(&flowset->freelist,flow,list);
       }
    }
 
@@ -72,10 +72,11 @@ snw_flowset_getid(snw_flowset_t *s) {
 
    if (s == 0) return 0;
 
-   if (!list_empty(&s->freelist)) {
-      flow = list_first_entry(&s->freelist,snw_flow_t,list);
+   if (!LIST_EMPTY(&s->freelist)) {
+      flow = LIST_FIRST(&s->freelist);
       id = flow->flowid;
-      list_move_tail(&flow->list,&s->usedlist); 
+      LIST_REMOVE(flow,list);
+      LIST_INSERT_HEAD(&s->usedlist,flow,list); 
       s->usednum++;
    } 
 
@@ -91,10 +92,12 @@ snw_flowset_freeid(snw_flowset_t *s, uint32_t id) {
    
    if (!snw_flowset_is_in_range(s,id))
       return;
-   
+
    flow = s->data + (id - s->baseidx);
-   flow->obj = 0;
-   list_move_tail(&flow->list,&s->freelist);
+   flow->obj = 0; //XXX: ensure obj is freed
+
+   LIST_REMOVE(flow,list);
+   LIST_INSERT_HEAD(&s->freelist,flow,list);
    if (s->usednum == 0)
       return;
    else 

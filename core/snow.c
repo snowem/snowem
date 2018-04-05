@@ -598,10 +598,9 @@ snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, Json::Value &root) {
 
 int
 snw_module_handler(snw_context_t *ctx, snw_connection_t *conn, uint32_t type, char *data, uint32_t len) {
-   struct list_head *p;
-   
-   list_for_each(p,&ctx->modules.list) {
-      snw_module_t *m = list_entry(p,snw_module_t,list);
+   snw_module_t *m = 0;
+
+   LIST_FOREACH(m,&ctx->modules,list) {
       if (m->type == type) {
          m->methods->handle_msg(m,conn,data,len);
       }
