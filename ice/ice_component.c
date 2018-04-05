@@ -43,9 +43,7 @@ snw_component_allocate(snw_ice_context_t *ctx) {
    if (!component)
       return NULL;
    memset(component,0,sizeof(*component));
-   INIT_LIST_HEAD(&component->list);
-	INIT_LIST_HEAD(&component->remote_candidates.list);
-	//INIT_LIST_HEAD(&component->rtplist.list);
+	 INIT_LIST_HEAD(&component->remote_candidates.list);
 
    return component;
 }
@@ -62,16 +60,14 @@ snw_component_deallocate(snw_ice_context_t *ctx, snw_ice_component_t* p) {
 }
 
 snw_ice_component_t* 
-snw_component_find(snw_ice_component_t *head, uint32_t id) {
-   struct list_head *n;
+snw_component_find(ice_component_head_t *head, uint32_t id) {
+   snw_ice_component_t *s = 0;
 
    if ( head == NULL )
       return NULL;
    
-   list_for_each(n,&head->list) {
-      snw_ice_component_t *s = list_entry(n,snw_ice_component_t,list);
-
-      if ( s->id == id )
+   LIST_FOREACH(s,head,list) {
+      if (s->id == id)
          return s;
    }
 
@@ -79,13 +75,12 @@ snw_component_find(snw_ice_component_t *head, uint32_t id) {
 }
 
 void
-snw_component_insert(snw_ice_component_t *head, snw_ice_component_t *item) {
+snw_component_insert(ice_component_head_t *head, snw_ice_component_t *item) {
    
    if ( head == NULL || item == NULL )
       return;
 
-   list_add(&item->list,&head->list);
-
+   LIST_INSERT_HEAD(head,item,list);
    return;
 }
 

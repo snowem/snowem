@@ -316,6 +316,7 @@ void
 ice_dtls_handshake_done(snw_ice_session_t *session, snw_ice_component_t *component) {
    snw_ice_context_t *ice_ctx = 0;
    snw_log_t *log = 0;
+   snw_ice_stream_t *s = 0;
 
    if (!session || !component)
       return;
@@ -325,18 +326,16 @@ ice_dtls_handshake_done(snw_ice_session_t *session, snw_ice_component_t *compone
    DEBUG(log, "srtp handshake is completed, cid=%u, sid=%u",
          component->id, component->stream->id);
 
-   struct list_head *n,*p;
-   list_for_each(n,&session->streams.list) {
-      snw_ice_stream_t *s = list_entry(n,snw_ice_stream_t,list);
+   LIST_FOREACH(s,&session->streams,list) {
+      snw_ice_component_t *c;
       if (s->is_disable)
          continue;
-      list_for_each(p,&s->components.list) {
-         snw_ice_component_t *c = list_entry(p,snw_ice_component_t,list);
+      LIST_FOREACH(c,&s->components,list) {
          if (!c->dtls || c->dtls->state != DTLS_STATE_CONNECTED) {
             DEBUG(log, "component not ready, sid=%u, cid=%u",s->id, c->id);
             return;
          }    
-      }    
+      } 
    }
 
    SET_FLAG(session, WEBRTC_READY);

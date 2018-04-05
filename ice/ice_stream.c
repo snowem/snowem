@@ -46,7 +46,6 @@ snw_stream_allocate(snw_ice_context_t *ctx) {
       return 0;
 
    memset(stream,0,sizeof(*stream));
-   INIT_LIST_HEAD(&stream->list);
    return stream;
 }
 
@@ -63,15 +62,13 @@ snw_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p) {
 }
 
 snw_ice_stream_t*
-snw_stream_find(snw_ice_stream_t *head, uint32_t id) {
-   struct list_head *n;
+snw_stream_find(ice_stream_head_t *head, uint32_t id) {
+   snw_ice_stream_t *s = 0;
 
    if (head == NULL)
       return NULL;
    
-   list_for_each(n,&head->list) {
-      snw_ice_stream_t *s = list_entry(n,snw_ice_stream_t,list);
-
+   LIST_FOREACH(s,head,list) {
       if (s->id == id)
          return s;
    }
@@ -80,12 +77,12 @@ snw_stream_find(snw_ice_stream_t *head, uint32_t id) {
 }
 
 void
-snw_stream_insert(snw_ice_stream_t *head, snw_ice_stream_t *item) {
+snw_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item) {
    
    if ( head == NULL || item == NULL )
       return;
 
-   list_add(&item->list,&head->list);
+   LIST_INSERT_HEAD(head,item,list);
 
    return;
 }

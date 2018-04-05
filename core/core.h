@@ -103,8 +103,7 @@ struct snw_context {
    /* mempool for fixed-size objects */
    snw_mempool_t *rcvvars_mp;
 
-   snw_module_t  *module;
-   snw_module_t   modules;
+   module_head_t  modules;
 
    /* map from flowid to peerid */
    uint32_t flow2peer[SNW_CORE_FLOW_NUM_MAX];

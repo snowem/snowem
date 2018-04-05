@@ -57,7 +57,8 @@ struct snw_ice_session {
    int                streams_num;
    int                control_mode;
 
-   snw_ice_stream_t   streams;
+   //snw_ice_stream_t   streams;
+   ice_stream_head_t streams;
    snw_ice_stream_t  *audio_stream;
    snw_ice_stream_t  *video_stream;
 
