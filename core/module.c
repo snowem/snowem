@@ -27,13 +27,11 @@
 
 void
 snw_module_init(snw_context_t *ctx) {
-   snw_log_t *log = 0;
    void *handle;
    void (*init)(void*);
    snw_module_t *m = 0;
 
    if (!ctx) return;
-   log = ctx->log;
 
    LIST_FOREACH(m,&ctx->modules,list) {
       handle = dlopen(m->sofile, RTLD_LAZY);

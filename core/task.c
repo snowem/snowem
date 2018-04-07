@@ -61,8 +61,6 @@ snw_task_setup(snw_context_t *ctx, uint32_t key_req,
     uint32_t key_resp, int size, task_callback_fn parent_cb,
     task_callback_fn child_cb) {
   snw_task_ctx_t *task_ctx = 0;
-  struct timeval tv;
-  struct event *ev;
   int pid = -1;
 
   task_ctx = snw_create_task_context(ctx, key_req, key_resp, size);

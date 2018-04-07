@@ -41,11 +41,9 @@ roominfo_key(const void *item) {
 
 inline int
 roominfo_eq(const void *arg1, const void *arg2) {  
-   int ret = 0;
    snw_roominfo_t *item1 = (snw_roominfo_t *)arg1;
    snw_roominfo_t *item2 = (snw_roominfo_t *)arg2;
 
-   ret = strncmp(item1->name,item2->name,ROOM_NAME_LEN);
    return !strncmp(item1->name,item2->name,ROOM_NAME_LEN);
 }
 

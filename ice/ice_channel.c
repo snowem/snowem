@@ -135,7 +135,6 @@ snw_channel_add_subscriber(snw_ice_context_t *ice_ctx,
       uint32_t channelid, uint32_t flowid) {
    snw_log_t *log = 0;
    snw_ice_channel_t *channel = 0;
-   int found = 0;
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
@@ -173,9 +172,8 @@ snw_channel_remove_subscriber(snw_ice_context_t *ice_ctx,
    channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
    if (!channel) return;
 
-   for (int i=0; i<channel->idx; i++) {
+   for (uint32_t i=0; i<channel->idx; i++) {
       if (channel->players[i] == flowid) {
-         uint32_t tmp;
          found = 1;
          channel->idx--;
          channel->players[i] = channel->players[channel->idx];

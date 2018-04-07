@@ -99,7 +99,6 @@ snw_http_get_buf_by_file(snw_http_context_t *ctx, const char *name) {
 
 void
 snw_http_root_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  snw_log_t *log = ctx->log;
   struct evbuffer *buf = snw_http_get_buf_by_file(ctx,"/var/snowem/html/index.html");
 
   if (buf) {
@@ -114,7 +113,6 @@ snw_http_root_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
 
 void
 snw_http_snowjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  snw_log_t *log = ctx->log;
   struct evbuffer *buf = 0;
 
   evhttp_add_header(evhttp_request_get_output_headers(req),
@@ -133,7 +131,6 @@ snw_http_snowjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
 
 void
 snw_http_adapjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  snw_log_t *log = ctx->log;
   struct evbuffer *buf = 0;
 
   evhttp_add_header(evhttp_request_get_output_headers(req),
@@ -152,7 +149,6 @@ snw_http_adapjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
 
 void
 snw_http_app_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  snw_log_t *log = ctx->log;
   struct evbuffer *buf = 0;
 
   evhttp_add_header(evhttp_request_get_output_headers(req),

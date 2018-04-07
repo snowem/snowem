@@ -138,7 +138,6 @@ snw_ice_get_sdp_attr(snw_ice_context_t *ice_ctx, char *sdp, ice_sdp_attr_t *sdp_
 
 void 
 snw_ice_sdp_add_global_attrs(snw_ice_session_t *session, int audio, int video, char* sdp) {
-   snw_log_t *log = session->ice_ctx->log;
    static char buffer[512];
    int64_t sessid = 0;
 
@@ -442,9 +441,8 @@ snw_ice_sdp_add_candidates(snw_ice_session_t *session, sdp_media_t *m, int video
 
 void 
 snw_ice_sdp_add_mline(snw_ice_session_t *session, int video, char* sdp) {
-   snw_log_t *log = session->ice_ctx->log;
    char buffer[512];
-   int ipv6 = 0; //FIXME: ipv6 not support now
+   int ipv6 = 0; //TODO: ipv6 not support now
 
    /* media */
    snprintf(buffer, 512, "m=%s 1 %s", video ? "video" : "audio", RTP_PROFILE);

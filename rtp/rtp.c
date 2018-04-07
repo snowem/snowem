@@ -32,11 +32,9 @@ snw_rtp_module_t *g_rtp_modules[] = {
 
 int
 snw_rtp_init(snw_ice_context_t *ctx) {
-   snw_log_t *log;
    int i = 0;
 
    if (!ctx) return -1;
-   log = ctx->log;
     
    for (i=0; ; i++) {
       snw_rtp_module_t *m = g_rtp_modules[i];
@@ -50,7 +48,6 @@ snw_rtp_init(snw_ice_context_t *ctx) {
 void
 print_rtp_header(snw_log_t *log, char *buf, int buflen, const char *msg) {
    rtp_hdr_t *hdr;
-   char *p;
    uint16_t id = 0;
    int hdrlen = 0;
    int extlen = 0;
@@ -100,11 +97,9 @@ snw_rtp_get_pkt_type(char* buf, int len) {
 
 int
 snw_rtp_handle_pkg_in(snw_rtp_ctx_t *ctx, char *buffer, int len) {
-   snw_log_t *log;
    int i = 0;
 
    if (!ctx) return -1;
-   log = ctx->log;
 
    for (i=0; ; i++) {
       snw_rtp_module_t *m = g_rtp_modules[i];
@@ -119,11 +114,9 @@ snw_rtp_handle_pkg_in(snw_rtp_ctx_t *ctx, char *buffer, int len) {
 
 int
 snw_rtp_handle_pkg_out(snw_rtp_ctx_t *ctx, char *buffer, int len) {
-   snw_log_t *log;
    int i = 0;
 
    if (!ctx) return -1;
-   log = ctx->log;
 
    for (i=0; ; i++) {
       snw_rtp_module_t *m = g_rtp_modules[i];

@@ -22,12 +22,10 @@
 
 snw_rtcp_stats_t*
 snw_rtcp_stats_find(snw_rtp_ctx_t *ctx, rtcp_stats_head_t *s, uint32_t ssrc) {
-   snw_log_t *log = 0;
    snw_rtcp_stats_t* stats = 0;
    snw_rtcp_stats_t* p = 0;
 
    if (!ctx) return 0;
-   log = ctx->log;
 
    TAILQ_FOREACH(p,s,list) {
       if (p->ssrc == ssrc) {
@@ -43,7 +41,6 @@ snw_rtcp_stats_t*
 snw_rtcp_stats_new(snw_rtp_ctx_t *ctx, rtcp_stats_head_t *s, uint32_t ssrc) {
    snw_log_t *log = 0;
    snw_rtcp_stats_t* stats = 0;
-   struct list_head *n;
 
    if (!ctx) return 0;
    log = ctx->log;
@@ -71,11 +68,9 @@ snw_rtcp_stats_new(snw_rtp_ctx_t *ctx, rtcp_stats_head_t *s, uint32_t ssrc) {
 
 void
 snw_rtp_slidewin_reset(snw_rtp_ctx_t *ctx, rtp_slidewin_t *win, uint16_t seq) {
-   snw_log_t *log = 0;
    int idx = 0;
 
    if (!ctx || !win) return;
-   log = ctx->log;
 
    memset(win,0,sizeof(*win)); //reset all
    idx = seq % RTP_SLIDEWIN_SIZE; 
@@ -147,7 +142,6 @@ snw_rtp_slidewin_update(snw_rtp_ctx_t *ctx, rtp_slidewin_t *win, uint16_t seq, u
 
 int
 snw_rtp_slidewin_is_retransmit(snw_rtp_ctx_t *ctx, rtp_slidewin_t *win, uint16_t seq) {
-   uint16_t udelta;
    int i = 0;
 
    //TODO: adjust slidewin size to better handling of retransmit status.
@@ -165,8 +159,6 @@ snw_rtp_slidewin_put(snw_rtp_ctx_t *ctx, rtp_slidewin_t *win, uint16_t seq) {
    snw_log_t *log = 0;
    nack_payload_t nack;
    uint16_t udelta;
-   int nseq = seq;
-   int nlast_seq = win->last_seq;
    int idx = 0;
 
    if (!ctx || !win) 

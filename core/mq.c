@@ -177,9 +177,7 @@ snw_shmmq_init_new(snw_shmmq_t *mq,
       int32_t wait_sec, int32_t wait_usec, 
       int32_t shm_key, int32_t shm_size) {
   int ret = 0;
-  int val;
   char *mem_addr = NULL;
-  int mode = 0666 | O_NONBLOCK | O_NDELAY;
 
   if (mq == NULL) return -1;
   mq->type = SNW_MQ_PIPE;
@@ -259,7 +257,6 @@ snw_write_mq(snw_shmmq_t *mq, const void* data, uint32_t data_len, uint32_t flow
   } else if (tail_len >= MQ_HEADER_SIZE && tail_len < MQ_HEADER_SIZE + data_len) {
     uint32_t first_len = 0;
     uint32_t second_len = 0;
-    int32_t wrapped_tail = 0;
     memcpy(mq->data + tail, buffer, MQ_HEADER_SIZE);
     first_len = tail_len - MQ_HEADER_SIZE;
     memcpy(mq->data + tail + MQ_HEADER_SIZE, data, first_len);
