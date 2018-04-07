@@ -31,12 +31,12 @@
 void
 snw_ice_api_handler(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
    snw_log_t *log = 0;
-   struct list_head *p = 0, *n = 0;
    Json::Value root;
    Json::Reader reader;
    Json::FastWriter writer;
    std::string output;
-   uint32_t msgtype = 0, api = 0;
+   snw_ice_api_t *a = 0;
+   uint32_t msgtype, api;
    int ret;
 
    if (!ice_ctx) return;
@@ -60,11 +60,10 @@ snw_ice_api_handler(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32
    }
 
    TRACE(log, "looking for api handler, api=%u", api);
-   list_for_each(p,&ice_ctx->api_handlers.list) {
-      snw_ice_api_t *a = list_entry(p,snw_ice_api_t,list);
+   TAILQ_FOREACH(a,&ice_ctx->api_handlers,list) {
       if (a->api == api) {
-         list_for_each(n,&a->handlers.list) {
-            snw_ice_handlers_t *h = list_entry(n,snw_ice_handlers_t,list);
+         snw_ice_handlers_t *h = 0;
+         TAILQ_FOREACH(h,&a->handlers,list) {
             h->handler(ice_ctx,data,len,flowid);
          }
       }
@@ -88,7 +87,6 @@ snw_ice_dispatch_msg(int fd, short int event,void* data) {
       cnt++;
       if (cnt >= 100) break;
 
-      //ret = snw_shmmq_dequeue(ctx->snw_core2ice_mq, buf, MAX_BUFFER_SIZE, &len, &flowid);
       ret = snw_shmmq_dequeue(ice_ctx->task_ctx->req_mq, buf, MAX_BUFFER_SIZE, &len, &flowid);
       if ((len == 0 && ret == 0) || (ret < 0))
          return;
@@ -163,8 +161,6 @@ snw_ice_log_cb(int severity, const char *msg, void *data) {
    return; 
 }
 
-void 
-snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    static snw_ice_api_t apis[] = {
       {.list = {0,0}, .api = SNW_ICE_CREATE},
       {.list = {0,0}, .api = SNW_ICE_CONNECT},
@@ -175,7 +171,10 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
       {.list = {0,0}, .api = SNW_ICE_CONNECT, .handler = test_api2},
       {.list = {0,0}, .api = SNW_ICE_STOP, .handler = test_api3}
    };
-   struct list_head *p = 0;
+
+void 
+snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
+   snw_ice_api_t *h = 0;
    snw_ice_context_t *ice_ctx;
    struct event *q_event;
    int api_num = sizeof(apis)/sizeof(snw_ice_api_t);
@@ -210,28 +209,20 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
 
    ice_dtls_init(ice_ctx, ctx->wss_cert_file, ctx->wss_key_file);
 
-   //q_event = event_new(ctx->ev_base, ctx->snw_core2ice_mq->fd, 
-   //      EV_TIMEOUT|EV_READ|EV_PERSIST, snw_ice_dispatch_msg, ice_ctx);
    q_event = event_new(ctx->ev_base, task_ctx->req_mq->pipe[0], 
          EV_TIMEOUT|EV_READ|EV_PERSIST, snw_ice_dispatch_msg, ice_ctx);
    event_add(q_event, NULL);   
 
-   for (int j=0; j<handler_num; j++) {
-      INIT_LIST_HEAD(&handlers[j].list);
-   }
-
-   INIT_LIST_HEAD(&ice_ctx->api_handlers.list);
+   TAILQ_INIT(&ice_ctx->api_handlers);
    for (int i=0; i<api_num; i++) {
-      INIT_LIST_HEAD(&apis[i].list);
-      INIT_LIST_HEAD(&apis[i].handlers.list);
-      list_add_tail(&apis[i].list, &ice_ctx->api_handlers.list);
+      TAILQ_INIT(&apis[i].handlers);
+      TAILQ_INSERT_TAIL(&ice_ctx->api_handlers, &apis[i], list);
    }
 
-   list_for_each(p, &ice_ctx->api_handlers.list) {
-      snw_ice_api_t *h = list_entry(p,snw_ice_api_t,list);
+   TAILQ_FOREACH(h, &ice_ctx->api_handlers,list) {
       for (int j=0; j<handler_num; j++) {
          if (h->api == handlers[j].api)
-            list_add_tail(&handlers[j].list, &h->handlers.list);
+            TAILQ_INSERT_TAIL(&h->handlers, &handlers[j], list);
       }
    }
 
