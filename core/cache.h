@@ -24,11 +24,13 @@
 extern "C" {
 #endif
 
+#define CACHE_FLAG_CREATE (1<<0)
+#define CACHE_FLAG_INIT   (1<<1)
+
 typedef int (*eqfn) (const void *, const void *);
 typedef int (*keyfn) (const void *);
 typedef int (*isemptyfn) (const void *);
 typedef int (*setemptyfn) (const void *);
-
 
 typedef struct snw_hashbase snw_hashbase_t;
 struct snw_hashbase {

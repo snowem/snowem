@@ -152,6 +152,7 @@ snw_shmmq_init(snw_shmmq_t *mq, const char* fifo_path,
     mem_addr = mq->shm->addr;
   }
 
+  //TODO: reset mem if really needed
   memset(mem_addr, 0, sizeof(*mq->shm_ctrl));
   mq->shm_ctrl = (snw_shmctrl_t *)mem_addr;
   mq->shm_ctrl->period_time = 1;
