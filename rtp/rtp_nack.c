@@ -135,7 +135,7 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
    }
 
    //HEXDUMP(log,(char*)buf,buflen,"rtp");
-   //FIXME: save rtp packets to resend them later
+   //TODO: save rtp packets to resend them later
    
    //handle lost packets and generate NACK rtpfb message.
    nack = snw_rtp_slidewin_put(ctx, &stats->seq_win, seqno);
@@ -143,11 +143,9 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
       char rtcpbuf[RTCP_RTPFB_MSG_LEN];
       snw_ice_session_t *session = 0;
       snw_ice_stream_t *stream = 0;
-      snw_ice_component_t *component = 0;
 
       session = (snw_ice_session_t*)ctx->session;
       stream = (snw_ice_stream_t*)ctx->stream;
-      component = (snw_ice_component_t*)ctx->component;
       DEBUG(log,"sending rtpfb nack, flowid=%u, local_ssrc=%x,"
                 " remote_ssrc=%x, payload=%x", session->flowid,
                 stream->local_video_ssrc, stream->remote_video_ssrc, 
@@ -176,7 +174,7 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
       TRACE(log, "generate receiver rb info, ssrc=%u, cycles=%u, "
                  "max_seq=%u lastrr_time=%llu, curtime=%llu", 
             stats->ssrc, stats->seq_win.cycles, stats->seq_win.max_seq, 
-            stats->last_send_rr_time, ctx->epoch_curtime);
+            stats->last_send_rr_ts, ctx->epoch_curtime);
       
       // generate report block
       memset(&rb,0,sizeof(rb)); 
@@ -253,8 +251,6 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
 int
 snw_rtp_send_empty_rr_rtcp(snw_rtp_ctx_t *ctx) {
    char data[RTCP_EMPTY_RR_MSG_LEN] = {0};
-   snw_log_t *log = ctx->log;
-   snw_ice_stream_t *stream = (snw_ice_stream_t*)ctx->stream;
    snw_ice_session_t *session = (snw_ice_session_t*)ctx->session;
    int ret = 0;
 
@@ -271,10 +267,7 @@ int
 snw_rtp_send_sr_rtcp(snw_rtp_ctx_t *ctx, snw_rtcp_stats_t *stats, 
       uint32_t ssrc, uint32_t ts) {
    static char data[RTCP_SR_MSG_LEN] = {0};
-   snw_log_t *log = ctx->log;
    snw_rtcp_sr_t sr;
-   rtcp_hdr_t *rtcp = 0;
-   snw_ice_stream_t *stream = (snw_ice_stream_t*)ctx->stream;
    snw_ice_session_t *session = (snw_ice_session_t*)ctx->session;
    int ret = 0;
 

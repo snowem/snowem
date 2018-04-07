@@ -77,7 +77,6 @@ void
 snw_ice_dispatch_msg(int fd, short int event,void* data) {
    static char buf[MAX_BUFFER_SIZE];
    snw_ice_context_t *ice_ctx = (snw_ice_context_t*)data;
-   snw_context_t *ctx = (snw_context_t*)ice_ctx->ctx;
    uint32_t len = 0;
    uint32_t flowid = 0;
    uint32_t cnt = 0;
@@ -178,13 +177,11 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    };
    struct list_head *p = 0;
    snw_ice_context_t *ice_ctx;
-   snw_log_t *log = 0;
    struct event *q_event;
    int api_num = sizeof(apis)/sizeof(snw_ice_api_t);
    int handler_num = sizeof(handlers)/sizeof(snw_ice_handlers_t);
    
    if (!ctx) return;
-   log = ctx->log;
 
    ice_ctx = (snw_ice_context_t *)malloc(sizeof(snw_ice_context_t));
    if (ice_ctx == 0) return;
@@ -246,14 +243,12 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
 
 void
 ice_rtp_established(snw_ice_session_t *session) {
-   snw_context_t *ctx = 0;
    snw_ice_context_t *ice_ctx = 0;
    snw_log_t *log = 0;
 
    if (!session) return;
    ice_ctx = session->ice_ctx;
    log = ice_ctx->log;
-   ctx = (snw_context_t*)ice_ctx->ctx;
 
    DEBUG(log, "ice connection established, flowid=%u", session->flowid);
    if ( IS_FLAG(session,ICE_SUBSCRIBER) ) {

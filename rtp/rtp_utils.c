@@ -19,7 +19,7 @@
 
 int
 snw_rtp_get_hdrlen(rtp_hdr_t *hdr) {
-   uint16_t id = 0;
+   //uint16_t id = 0;
    int hdrlen = 0;
    int extlen = 0;
    char *p, *buf;
@@ -31,7 +31,7 @@ snw_rtp_get_hdrlen(rtp_hdr_t *hdr) {
    if (hdr->x) {
       uint16_t len;
       p = buf + hdrlen; 
-      id = ntohs(*((uint16_t*)p));
+      //id = ntohs(*((uint16_t*)p));
       len = ntohs(*((uint16_t*)(p+2)));
       extlen = 4 + 4*len;
       hdrlen += extlen;

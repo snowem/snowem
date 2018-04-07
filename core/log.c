@@ -63,7 +63,7 @@ snw_get_file_name(snw_log_t *log, int idx) {
 }
 
 void
-snw_log_rotate_file(snw_log_t *log, int idx) {
+snw_log_rotate_file(snw_log_t *log, uint32_t idx) {
   char *filename = 0;
   char *newfilename = 0;
 
@@ -87,9 +87,6 @@ snw_log_init(const char* filename, uint32_t level,
     uint32_t rotate_num, size_t size_limit) {
   snw_log_t *log;
   int ret = 0;
-  int len = 0;
-  char *dir_name;
-  char *abs_file_name;
 
   log = (snw_log_t*) malloc(sizeof(*log));
   if (!log) return 0;

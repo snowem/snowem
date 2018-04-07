@@ -67,8 +67,9 @@ snw_log_write_pure(snw_log_t *log, uint32_t level, const char* msg, ...);
 { snw_log_write(_log_,_level_,__FUNCTION__, __LINE__,fmt, ##__VA_ARGS__); }
 //{ snw_log_write(_log_,_level_,__FILE__, __LINE__,fmt, ##__VA_ARGS__); }
 
-#define TRACE(_log_,_fmt, ...) do {} while(0)
-#define INFO(_log_,_fmt, ...)  do {} while(0)
+//#define TEMPLATE(_log_,_fmt, ...) do {} while(0)
+#define TRACE(_log_,_fmt, ...) do {LOG(_log_, SNW_TRACE,_fmt,##__VA_ARGS__);} while(0)
+#define INTO(_log_,_fmt, ...) do {LOG(_log_, SNW_INFO,_fmt,##__VA_ARGS__);} while(0)
 #define DEBUG(_log_,_fmt, ...) do {LOG(_log_, SNW_DEBUG,_fmt,##__VA_ARGS__);} while(0)
 #define WARN(_log_,_fmt, ...)  do {LOG(_log_, SNW_WARN,_fmt,##__VA_ARGS__);} while(0)
 #define ERROR(_log_,_fmt, ...) do {LOG(_log_, SNW_ERROR,_fmt,##__VA_ARGS__);} while(0)

@@ -32,7 +32,6 @@
 
 void ice_send_candidate(snw_ice_session_t *session,
     int video, char *buffer, int len) {
-   snw_context_t *ctx;
    snw_log_t *log = 0;
    Json::Value root,candidate;
    std::string output;
@@ -40,7 +39,6 @@ void ice_send_candidate(snw_ice_session_t *session,
    std::string str(buffer,len);
 
    if (!session) return;
-   ctx = (snw_context_t*)session->ice_ctx->ctx;
    log = session->ice_ctx->log;
 
    root["msgtype"] = SNW_ICE;
@@ -182,8 +180,6 @@ snw_ice_sdp_send_candidates(snw_ice_session_t *session) {
 void
 snw_ice_send_msg_to_core(snw_ice_context_t *ice_ctx, Json::Value &root, 
       uint32_t flowid, int rc) {
-   snw_context_t *ctx = (snw_context_t*)ice_ctx->ctx;
-   snw_log_t *log = ice_ctx->log;
    Json::FastWriter writer;
    std::string output;
 
@@ -196,7 +192,6 @@ snw_ice_send_msg_to_core(snw_ice_context_t *ice_ctx, Json::Value &root,
 
 void
 snw_ice_create_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
-   snw_context_t *ctx = (snw_context_t*)ice_ctx->ctx;
    snw_log_t *log = ice_ctx->log;
    snw_ice_channel_t *channel = 0;
    uint32_t channelid = 0;
@@ -249,7 +244,6 @@ snw_ice_generate_sdp(snw_ice_session_t *session) {
 static void
 snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *user_data) {
    snw_ice_session_t *session = (snw_ice_session_t *)user_data;
-   snw_context_t *ctx = (snw_context_t*)session->ice_ctx->ctx;
    snw_log_t *log = session->ice_ctx->log;
    Json::Value root,sdp;
    std::string output;
@@ -787,9 +781,8 @@ ice_rtp_incoming_msg(snw_ice_session_t *session, snw_ice_stream_t *stream,
 int
 snw_ice_resend_pkt(snw_ice_session_t *session, snw_ice_component_t *component,
               int video, int seqno, int64_t now) {
-   snw_log_t *log = session->ice_ctx->log;
-
    //FIXME: impl
+   //snw_log_t *log = session->ice_ctx->log;
    //DEBUG(log, "resend seq, flowid=%u, seqno=%u, ts=%llu",
    //      session->flowid, seqno, now);
    return 0;
@@ -801,9 +794,7 @@ ice_rtcp_incoming_msg(snw_ice_session_t *session, snw_ice_stream_t *stream,
    snw_log_t *log = 0;
    snw_rtp_ctx_t *rtp_ctx = 0;
    err_status_t ret;
-   uint32_t ssrc = 0;
    int buflen = len;
-   int video = 0;
 
    if (!session) return;
    log = session->ice_ctx->log;
@@ -1108,10 +1099,8 @@ snw_ice_offer_sdp(snw_ice_context_t *ice_ctx,
 
 void
 snw_ice_connect_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
-   snw_context_t *ctx = (snw_context_t*)ice_ctx->ctx;
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
-   snw_ice_channel_t *channel;
    std::string peer_type;
    uint32_t channelid = 0;
    int is_new = 0;
@@ -1184,7 +1173,6 @@ void
 ice_component_free(snw_ice_context_t *ice_ctx, ice_component_head_t *components, 
       snw_ice_component_t *component) {
    snw_log_t *log = 0;
-   struct list_head *pos,*n;
    snw_ice_component_t *c = 0;
    snw_ice_component_t *t = 0;
 
@@ -1235,7 +1223,6 @@ ice_stream_cleanup(snw_ice_context_t *ice_ctx, snw_ice_stream_t *stream) {
 void 
 ice_stream_free(snw_ice_context_t *ice_ctx, ice_stream_head_t *streams, snw_ice_stream_t *stream) {
    snw_log_t *log = 0;
-   struct list_head *pos,*n;
    snw_ice_stream_t *d = 0; 
    snw_ice_stream_t *s = 0;
          
@@ -1245,7 +1232,7 @@ ice_stream_free(snw_ice_context_t *ice_ctx, ice_stream_head_t *streams, snw_ice_
 
    LIST_FOREACH(s,streams,list) {
       if (s->id == stream->id) {
-         list_del(pos);
+         LIST_REMOVE(s,list);
          d = s;
       }
    }
@@ -1261,13 +1248,9 @@ ice_stream_free(snw_ice_context_t *ice_ctx, ice_stream_head_t *streams, snw_ice_
 
 void 
 snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
-   snw_log_t *log = 0;
-   struct list_head *n, *p;
    snw_ice_stream_t *s = 0;
 
    if (!session || !ice_ctx) return;
-   log = ice_ctx->log;
-
 
    if (session->agent) {
       ice_agent_free(session->agent);
@@ -1319,10 +1302,8 @@ snw_ice_stop_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid)
 
 int
 snw_ice_merge_streams(snw_ice_session_t *session, int audio, int video) {
-   snw_log_t *log = 0;
 
    if (!session) return -1;
-   log = session->ice_ctx->log;
 
    if (audio) {
       if( !LIST_EMPTY(&session->streams) && session->video_stream) {
@@ -1343,10 +1324,8 @@ snw_ice_merge_streams(snw_ice_session_t *session, int audio, int video) {
 
 int
 snw_ice_merge_components(snw_ice_session_t *session) {
-   snw_log_t *log = 0;
 
    if (!session) return -1;
-   log = session->ice_ctx->log;
 
    if(session->audio_stream && !LIST_EMPTY(&session->audio_stream->components) ) {
       ice_agent_attach_recv(session->agent, session->audio_stream->id, 2, 0, 0);
@@ -1458,7 +1437,6 @@ ice_setup_remote_candidates(snw_ice_session_t *session, uint32_t stream_id, uint
 
 void
 snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
-   snw_context_t *ctx = (snw_context_t*)ice_ctx->ctx;
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
    ice_sdp_attr_t sdp_attr;
@@ -1682,7 +1660,6 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, Json::Value &candidate
 
 void
 snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
-   snw_context_t *ctx = (snw_context_t*)ice_ctx->ctx;
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
    Json::Value candidate;

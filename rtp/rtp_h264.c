@@ -34,7 +34,6 @@ int
 snw_rtp_h264_init(void *c) {
    snw_ice_context_t *ctx = (snw_ice_context_t*)c;
    snw_log_t *log = 0;
-   snw_rtp_module_t *prev = &g_rtp_h264_module;
    int i = 0;
    
    if (!ctx) return -1;
@@ -61,17 +60,13 @@ snw_rtp_h264_init(void *c) {
 int
 ice_h264_process_nal_unit(snw_rtp_ctx_t *ctx, int is_end_frame,  
        char *buf, int buflen) {
-   snw_log_t *log;
-   uint8_t nal_unit_type;
-   int len;
+   //uint8_t nal_unit_type;
 
    if (!ctx || !buf || buflen <= 0) {
       return -1;
    }
-   log = ctx->log;
 
-   //HEXDUMP(log,buf,3,"h264");
-   nal_unit_type = *buf & 0x1f;
+   //nal_unit_type = *buf & 0x1f;
    // 5bits, 7.3.1 NAL unit syntax,
    // H.264-AVC-ISO_IEC_14496-10.pdf, page 44.
    //  7: SPS, 8: PPS, 5: I Frame, 1: P Frame, 9: AUD, 6: SEI
@@ -90,7 +85,7 @@ ice_h264_process_stapa_unit(snw_rtp_ctx_t *ctx, int is_end_frame,
        char *buf, int buflen) {
    snw_log_t *log;
    char *p;
-   uint8_t nal_unit_type, fbit;
+   //uint8_t nal_unit_type, fbit;
    int nal_size;
    int len;
 
@@ -101,8 +96,8 @@ ice_h264_process_stapa_unit(snw_rtp_ctx_t *ctx, int is_end_frame,
 
    p = buf;
    len = buflen;
-   nal_unit_type = *p & 0x1f;
-   fbit = *p & 0x80;
+   //nal_unit_type = *p & 0x1f;
+   //fbit = *p & 0x80;
    p++;
    len--;
    
@@ -178,7 +173,6 @@ snw_rtp_h264_handle_pkg_in(void *data, char *buf, int buflen) {
    char *p;
    int hdrlen = 0;
    int extlen = 0;
-   int ret = 0;
 
    if (!ctx || !buf || buflen <= 0) {
       return -1;
@@ -191,9 +185,10 @@ snw_rtp_h264_handle_pkg_in(void *data, char *buf, int buflen) {
    hdr = (rtp_hdr_t*)buf;
    hdrlen = MIN_RTP_HEADER_SIZE + 4*hdr->cc;
    if (hdr->x) {
-      uint16_t id, len;
+      //uint16_t id;
+      uint16_t len;
       p = buf + hdrlen; 
-      id = ntohs(*((uint16_t*)p));
+      //id = ntohs(*((uint16_t*)p));
       len = ntohs(*((uint16_t*)(p+2)));
       extlen = 4 + 4*len;
       hdrlen += extlen;
