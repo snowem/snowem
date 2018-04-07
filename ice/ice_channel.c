@@ -26,46 +26,41 @@
 
 
 inline int
-ice_channel_key(const void *item)
-{  
+ice_channel_key(const void *item) {  
    snw_ice_channel_t *so =  (snw_ice_channel_t *)item;
    return so->id;
 }
 
 inline int
-ice_channel_eq(const void *arg1, const void *arg2)
-{  
+ice_channel_eq(const void *arg1, const void *arg2) {  
    snw_ice_channel_t *item1 = (snw_ice_channel_t *)arg1;
    snw_ice_channel_t *item2 = (snw_ice_channel_t *)arg2;
    return (item1->id == item2->id);
 }
 
 inline int
-ice_channel_isempty(const void *arg)
-{
+ice_channel_isempty(const void *arg) {
    snw_ice_channel_t *item = (snw_ice_channel_t *)arg;
    return (item->id == 0);
 }
 
 inline int            
-ice_channel_setempty(const void *arg)
-{
+ice_channel_setempty(const void *arg) {
    snw_ice_channel_t *item = (snw_ice_channel_t *)arg;
    item->id = 0;
    return 0;
 }
-
 
 int
 snw_ice_channel_init(snw_ice_context_t *ctx) {
    ctx->channel_cache = (snw_hashbase_t *)malloc(sizeof(snw_hashbase_t));
    if (ctx->channel_cache == 0)
       return -1;
-   snw_cache_init(ctx->channel_cache, ICE_CHANNEL_SHM_KEY, ICE_CHANNEL_HASHTIME, 
-         ICE_CHANNEL_HASHLEN, sizeof(snw_ice_channel_t),1, ice_channel_eq, 
-         ice_channel_key, ice_channel_isempty, ice_channel_setempty);
 
-   return 0;
+   return snw_cache_init(ctx->channel_cache, ICE_CHANNEL_SHM_KEY, ICE_CHANNEL_HASHTIME, 
+            ICE_CHANNEL_HASHLEN, sizeof(snw_ice_channel_t),
+            CACHE_FLAG_CREATE | CACHE_FLAG_INIT, ice_channel_eq, 
+            ice_channel_key, ice_channel_isempty, ice_channel_setempty);
 }
 
 snw_ice_channel_t*

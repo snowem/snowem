@@ -43,7 +43,7 @@ snw_shm_create(key_t key, size_t size);
 char* 
 snw_shmat(int _id);
 
-void 
+int
 snw_shmdt(char* _mem);
 
 int32_t

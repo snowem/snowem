@@ -60,9 +60,11 @@ snw_peer_init() {
    ctx = (snw_hashbase_t *)malloc(sizeof(snw_hashbase_t));
    if (ctx == 0) return 0;
 
-   snw_cache_init(ctx, CORE_PEER_SHM_KEY, CORE_PEER_HASHTIME, 
-         CORE_PEER_HASHLEN, sizeof(snw_peer_t),1, peer_eq, 
-         peer_key, peer_isempty, peer_setempty);
+   ret = snw_cache_init(ctx, CORE_PEER_SHM_KEY, 
+           CORE_PEER_HASHTIME, CORE_PEER_HASHLEN,
+           sizeof(snw_peer_t), CACHE_FLAG_CREATE | CACHE_FLAG_INIT, 
+           peer_eq, peer_key, peer_isempty, peer_setempty);
+
    if (ret < 0) return 0;
 
    return ctx;

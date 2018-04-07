@@ -61,7 +61,8 @@ snw_channel_init() {
    if (ctx == 0) return 0;
 
    ret = snw_cache_init(ctx, CORE_CHANNEL_SHM_KEY, CORE_CHANNEL_HASHTIME, 
-         CORE_CHANNEL_HASHLEN, sizeof(snw_channel_t),1, channel_eq, 
+         CORE_CHANNEL_HASHLEN, sizeof(snw_channel_t),
+         CACHE_FLAG_CREATE | CACHE_FLAG_INIT, channel_eq, 
          channel_key, channel_isempty, channel_setempty);
    if (ret < 0) return 0;
 

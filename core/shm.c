@@ -89,22 +89,23 @@ char*
 snw_shmat(int _id) {
 	char* p = (char*) shmat(_id, NULL, 0);
 	if (p == (char*)-1) {
-      return 0;
-   }
+    return 0;
+  }
 
 	return p;
 }
 
-void 
+int
 snw_shmdt(char* _mem) {
 	if (_mem == NULL)
-		return;
+		return -1;
 	
 	int ret = shmdt(_mem);
 	if (ret < 0) {
-		printf("error: %s", strerror(errno));
-      return;
-   }
+    return -2;
+  }
+
+  return 0;
 }
 
 int

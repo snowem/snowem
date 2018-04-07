@@ -70,7 +70,8 @@ snw_roominfo_init() {
    if (ctx == 0) return 0;
 
    ret = snw_cache_init(ctx, CORE_ROOMINFO_SHM_KEY, CORE_ROOMINFO_HASHTIME, 
-         CORE_ROOMINFO_HASHLEN, sizeof(snw_roominfo_t),1, roominfo_eq, 
+         CORE_ROOMINFO_HASHLEN, sizeof(snw_roominfo_t),
+         CACHE_FLAG_CREATE | CACHE_FLAG_INIT, roominfo_eq, 
          roominfo_key, roominfo_isempty, roominfo_setempty);
    if (ret < 0) return 0;
    memset(g_empty_roominfo,0,ROOM_NAME_LEN);

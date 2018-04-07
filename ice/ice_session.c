@@ -25,46 +25,41 @@
 #include "sdp.h"
 
 inline int
-ice_session_key(const void *item)
-{  
+ice_session_key(const void *item) {  
    snw_ice_session_t *so =  (snw_ice_session_t *)item;
    return so->flowid;
 }
 
 inline int
-ice_session_eq(const void *arg1, const void *arg2)
-{  
+ice_session_eq(const void *arg1, const void *arg2) {  
    snw_ice_session_t *item1 = (snw_ice_session_t *)arg1;
    snw_ice_session_t *item2 = (snw_ice_session_t *)arg2;
    return (item1->flowid == item2->flowid);
 }
 
 inline int
-ice_session_isempty(const void *arg)
-{
+ice_session_isempty(const void *arg) {
    snw_ice_session_t *item = (snw_ice_session_t *)arg;
    return (item->flowid == 0);
 }
 
 inline int            
-ice_session_setempty(const void *arg)
-{
+ice_session_setempty(const void *arg) {
    snw_ice_session_t *item = (snw_ice_session_t *)arg;
    item->flowid = 0;
    return 0;
 }
-
 
 int
 snw_ice_session_init(snw_ice_context_t *ctx) {
    ctx->session_cache = (snw_hashbase_t *)malloc(sizeof(snw_hashbase_t));
    if (ctx->session_cache == 0)
       return -1;
-   snw_cache_init(ctx->session_cache, ICE_SESSION_SHM_KEY, ICE_SESSION_HASHTIME, 
-         ICE_SESSION_HASHLEN, sizeof(snw_ice_session_t),1, ice_session_eq, 
-         ice_session_key, ice_session_isempty, ice_session_setempty);
 
-   return 0;
+   return snw_cache_init(ctx->session_cache, ICE_SESSION_SHM_KEY, ICE_SESSION_HASHTIME, 
+            ICE_SESSION_HASHLEN, sizeof(snw_ice_session_t),
+            CACHE_FLAG_CREATE | CACHE_FLAG_INIT, ice_session_eq, 
+            ice_session_key, ice_session_isempty, ice_session_setempty);
 }
 
 snw_ice_session_t*
