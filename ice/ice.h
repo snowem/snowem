@@ -23,6 +23,7 @@
 
 #include "cice/event.h"
 
+#include "core/bsd_queue.h"
 #include "core/cache.h"
 #include "core/connection.h"
 #include "core/mempool.h"
@@ -37,18 +38,19 @@ extern "C" {
 
 typedef struct snw_ice_handlers snw_ice_handlers_t;
 struct snw_ice_handlers {
-   struct list_head list;
+   TAILQ_ENTRY(snw_ice_handlers) list;
    uint32_t         api;
    void           (*handler)(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid);
 };
+typedef TAILQ_HEAD(ice_handlers_head, snw_ice_handlers) ice_handlers_head_t;
 
 typedef struct snw_ice_api snw_ice_api_t;
 struct snw_ice_api {
-   struct list_head list;
-   uint32_t         api;
-   snw_ice_handlers handlers;
+   TAILQ_ENTRY(snw_ice_api) list;
+   uint32_t            api;
+   ice_handlers_head_t handlers;
 };
-
+typedef TAILQ_HEAD(ice_api_head, snw_ice_api) ice_api_head_t;
 
 struct snw_ice_context {
    void      *ctx;
@@ -75,8 +77,8 @@ struct snw_ice_context {
    SSL_CTX        *ssl_ctx;
    char            local_fingerprint[160];
 
-   snw_ice_api_t   api_handlers;
-   snw_task_ctx_t  *task_ctx;
+   ice_api_head_t  api_handlers;
+   snw_task_ctx_t *task_ctx;
 };
 
 void
