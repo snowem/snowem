@@ -84,7 +84,6 @@ struct snw_context {
    uint32_t            websocket_log_enabled:1;
    uint32_t            http_log_enabled:1;
    uint32_t            libevent_log_enabled:1;
-   uint32_t            test_webserver_enabled:1;
    uint32_t            reserved:27;
 
    /* task contexts */

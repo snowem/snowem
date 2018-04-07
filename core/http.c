@@ -97,94 +97,11 @@ snw_http_get_buf_by_file(snw_http_context_t *ctx, const char *name) {
   return buf;
 }
 
-void
-snw_http_root_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  struct evbuffer *buf = snw_http_get_buf_by_file(ctx,"/var/snowem/html/index.html");
-
-  if (buf) {
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-    evbuffer_free(buf);
-  } else {
-    evhttp_send_error(req,HTTP_NOTFOUND,"File not found");
-  }
-
-  return;
-}
-
-void
-snw_http_snowjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  struct evbuffer *buf = 0;
-
-  evhttp_add_header(evhttp_request_get_output_headers(req),
-                    "Content-type", "application/javascript; charset=utf-8");
-
-  buf = snw_http_get_buf_by_file(ctx,"/var/snowem/html/snowsdk.js");
-  if (buf) {
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-    evbuffer_free(buf);
-  } else {
-    evhttp_send_error(req,HTTP_NOTFOUND,"File not found");
-  }
-
-  return;
-}
-
-void
-snw_http_adapjs_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  struct evbuffer *buf = 0;
-
-  evhttp_add_header(evhttp_request_get_output_headers(req),
-                    "Content-type", "application/javascript; charset=utf-8");
-
-  buf = snw_http_get_buf_by_file(ctx,"/var/snowem/html/adapter.js");
-  if (buf) {
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-    evbuffer_free(buf);
-  } else {
-    evhttp_send_error(req,HTTP_NOTFOUND,"File not found");
-  }
-
-  return;
-}
-
-void
-snw_http_app_resp(snw_http_context_t *ctx, struct evhttp_request *req) {
-  struct evbuffer *buf = 0;
-
-  evhttp_add_header(evhttp_request_get_output_headers(req),
-                    "Content-type", "application/javascript; charset=utf-8");
-
-  buf = snw_http_get_buf_by_file(ctx,"/var/snowem/html/app.js");
-  if (buf) {
-    evhttp_send_reply(req, HTTP_OK, "OK", buf);
-    evbuffer_free(buf);
-  } else {
-    evhttp_send_error(req,HTTP_NOTFOUND,"File not found");
-  }
-
-  return;
-}
 
 void
 snw_process_http_get(snw_http_context_t *ctx, struct evhttp_request *req) {
-  snw_log_t *log = ctx->log;
 
-  if (!ctx->ctx->test_webserver_enabled)
-    return;
-
-  DEBUG(log, "Requested: %s", evhttp_request_uri(req));
-  if (!strcmp(evhttp_request_uri(req),"/")) {
-    snw_http_root_resp(ctx,req);
-  } else if (!strcmp(evhttp_request_uri(req),"/snowsdk.js")) {
-    snw_http_snowjs_resp(ctx,req);
-  } else if (!strcmp(evhttp_request_uri(req),"/adapter.js")) {
-    snw_http_adapjs_resp(ctx,req);
-  } else if (!strcmp(evhttp_request_uri(req),"/app.js")) {
-    snw_http_app_resp(ctx,req);
-  } else {
-    ERROR(log, "not handle request, req=%s", evhttp_request_uri(req));
-  }
-
+  evhttp_send_error(req,HTTP_NOTFOUND,"File not found");
   return;
 }
 
@@ -454,7 +371,6 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
       EVHTTP_REQ_PUT |
       EVHTTP_REQ_DELETE);
 
-  //if (!ctx->test_webserver_enabled)
   evhttp_set_bevcb(http_ctx->httpd, snw_setup_connection_https, http_ctx);
   evhttp_set_gencb(http_ctx->httpd, snw_process_http_request, http_ctx);
 

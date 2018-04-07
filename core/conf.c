@@ -174,12 +174,6 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       ctx->http_log_enabled = 0;
    }
 
-   if (config_lookup_int(&cfg, "test_webserver_enabled", &number)) {
-      ctx->test_webserver_enabled = number;
-   } else {
-      ctx->test_webserver_enabled = 0;
-   }
-
    setting = config_lookup(&cfg, "modules");
    if (setting != NULL) {
       snw_module_t *module;
