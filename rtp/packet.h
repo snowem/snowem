@@ -19,7 +19,7 @@
 #define _ICE_PACKET_H_
 
 #include <stdint.h>
-#include "core/linux_list.h"
+#include "core/bsd_queue.h"
 
 #define RTP_PACKET_AUDIO   0
 #define RTP_PACKET_VIDEO   1
@@ -36,20 +36,22 @@ struct rtp_packet {
 	char *data;
 	int length;
 
-   uint8_t type:1;      //0 - audio, 1 - video
-   uint8_t control:1;   //0 - rtp, 1 - rtcp
-   uint8_t keyframe:1;  //0 - non-key frame, 1 - key frame
-   uint8_t encrypted:1;
-   uint8_t reserve:4;
+  uint8_t type:1;      //0 - audio, 1 - video
+  uint8_t control:1;   //0 - rtp, 1 - rtcp
+  uint8_t keyframe:1;  //0 - non-key frame, 1 - key frame
+  uint8_t encrypted:1;
+  uint8_t reserve:4;
 
-	uint64_t last_retransmit;
+  uint64_t last_retransmit;
 
-   struct list_head list;
+  //struct list_head list;
+  TAILQ_ENTRY(rtp_packet) list;
 };
+typedef TAILQ_HEAD(rtp_list_head, rtp_packet) rtp_packet_head_t;
 
-void rtp_list_add(rtp_packet_t* head, rtp_packet_t *item);
-rtp_packet_t* rtp_list_remove_last(rtp_packet_t* head);
-int rtp_list_size(rtp_packet_t* head);
+void rtp_list_add(rtp_packet_head_t* head, rtp_packet_t *item);
+rtp_packet_t* rtp_list_remove_last(rtp_packet_head_t* head);
+int rtp_list_size(rtp_packet_head_t* head);
 
 
 

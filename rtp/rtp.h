@@ -19,7 +19,6 @@
 #define _SNOW_RTP_RTP_H_
 
 #include "core/types.h"
-#include "core/linux_list.h"
 #include "core/log.h"
 #include "ice/ice.h"
 
@@ -107,8 +106,8 @@ struct snw_rtp_ctx {
    int64_t    epoch_curtime;
    int64_t    ntp_curtime;
 
-   snw_rtcp_stats_t    sender_stats;
-   snw_rtcp_stats_t    receiver_stats;
+   rtcp_stats_head_t    sender_stats;
+   rtcp_stats_head_t    receiver_stats;
 
    //callbacks
    void (*send_pkt)(void *ctx, int control, int video, char *buffer, int len);

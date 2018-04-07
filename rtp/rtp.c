@@ -142,8 +142,8 @@ snw_rtp_ctx_init(snw_rtp_ctx_t *ctx) {
    if (!ctx) return 0;
    
    memset(ctx,0,sizeof(*ctx));
-   INIT_LIST_HEAD(&ctx->sender_stats.list);
-   INIT_LIST_HEAD(&ctx->receiver_stats.list);
+   TAILQ_INIT(&ctx->sender_stats);
+   TAILQ_INIT(&ctx->receiver_stats);
 
    return 0;
 }

@@ -20,7 +20,7 @@
 
 #include <stdint.h>
 
-#include "core/linux_list.h"
+#include "core/bsd_queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,7 +73,6 @@ struct rtp_slidewin {
 
 typedef struct snw_rtcp_stats snw_rtcp_stats_t;
 struct snw_rtcp_stats {
-   struct list_head list;
    uint32_t ssrc;
    int      type;
    
@@ -90,13 +89,12 @@ struct snw_rtcp_stats {
 
    // info of the last receiver report
    int64_t    last_rr_recv_ts;    // local time of the last sr
-	uint32_t   last_rr_cum_lost;
-	uint32_t   last_rr_frac_lost;
-	uint32_t   last_rr_hi_seqno;
-	uint32_t   last_rr_jitter;
-	uint32_t   last_rr_lsr;
-	uint32_t   last_rr_dlsr;
-
+   uint32_t   last_rr_cum_lost;
+   uint32_t   last_rr_frac_lost;
+   uint32_t   last_rr_hi_seqno;
+   uint32_t   last_rr_jitter;
+   uint32_t   last_rr_lsr;
+   uint32_t   last_rr_dlsr;
 
    int64_t    last_send_sr_ts;    // local time of the last sr
    int64_t    rtcp_sr_interval;
@@ -121,15 +119,18 @@ struct snw_rtcp_stats {
    uint32_t   nack_cnt;
    uint32_t   fir_cnt;
    uint32_t   pli_cnt;
+
+   TAILQ_ENTRY(snw_rtcp_stats) list;
 };
+typedef TAILQ_HEAD(rtcp_stats_head, snw_rtcp_stats) rtcp_stats_head_t;
 
 typedef struct snw_rtp_ctx snw_rtp_ctx_t;
 
 snw_rtcp_stats_t*
-snw_rtcp_stats_find(snw_rtp_ctx_t *ctx, snw_rtcp_stats_t *s, uint32_t ssrc);
+snw_rtcp_stats_find(snw_rtp_ctx_t *ctx, rtcp_stats_head_t *s, uint32_t ssrc);
 
 snw_rtcp_stats_t*
-snw_rtcp_stats_new(snw_rtp_ctx_t *ctx, snw_rtcp_stats_t *s, uint32_t ssrc);
+snw_rtcp_stats_new(snw_rtp_ctx_t *ctx, rtcp_stats_head_t *s, uint32_t ssrc);
 
 void
 snw_rtp_slidewin_reset(snw_rtp_ctx_t *ctx, rtp_slidewin_t *win, uint16_t seq);
