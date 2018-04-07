@@ -19,7 +19,6 @@
 #define _SNOW_ICE_COMPONENT_H_
 
 #include <stdint.h>
-#include <jansson.h>
 
 #include "cice/agent.h"
 #include "core/bsd_queue.h"
