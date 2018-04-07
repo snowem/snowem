@@ -21,7 +21,7 @@
 #include "rtp/rtp.h"
 
 int g_max_rtp_queue = 3001;
-void ice_rtp_is_vp8(rtp_packet_t *head, int type, char* buf, int len) {
+void ice_rtp_is_vp8(rtp_packet_head_t *head, int type, char* buf, int len) {
    rtp_packet_t *rtp = NULL;
    rtp_hdr_t   *rtp_hdr = NULL;
    vp8_desc_t   *vp8 = NULL;
