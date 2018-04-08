@@ -43,7 +43,7 @@ snw_component_allocate(snw_ice_context_t *ctx) {
    if (!component)
       return NULL;
    memset(component,0,sizeof(*component));
-	 INIT_LIST_HEAD(&component->remote_candidates.list);
+	 TAILQ_INIT(&component->remote_candidates);
 
    return component;
 }
