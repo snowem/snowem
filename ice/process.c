@@ -70,8 +70,8 @@ snw_ice_send_local_candidate(snw_ice_session_t *session, int video, uint32_t str
    agent_t* agent = 0;
    snw_ice_stream_t *stream = 0;
    snw_ice_component_t *component = 0;
-   candidate_head_t *candidates;
-   candidate_t *c = NULL;
+   struct list_head *i,*n;
+   candidate_t *candidates;
    int len;
 
    if (!session || !session->agent)
@@ -96,11 +96,12 @@ snw_ice_send_local_candidate(snw_ice_session_t *session, int video, uint32_t str
    if (candidates == 0 )
       return;
 
-   //DEBUG(log, "got list of candidates, size=%u, sid=%u, cid=%u",
-   //      list_size(&candidates->list), stream_id, component_id);
+   DEBUG(log, "got list of candidates, size=%u, sid=%u, cid=%u",
+         list_size(&candidates->list), stream_id, component_id);
 
-   TAILQ_FOREACH(c,candidates,list) {
+   list_for_each_safe(i,n,&candidates->list) {
       char buffer[100] = {0};
+      candidate_t *c = list_entry(i,candidate_t,list);
       char address[ICE_ADDRESS_STRING_LEN], base_address[ICE_ADDRESS_STRING_LEN];
       int port = 0, base_port = 0;
       address_to_string(&(c->addr), (char *)&address);
@@ -382,8 +383,8 @@ snw_ice_cb_new_remote_candidate(agent_t *agent, uint32_t stream_id,
    snw_ice_stream_t *stream = 0;
    snw_ice_component_t *component = 0;
    candidate_t *candidate = 0;
-   candidate_head_t *candidates = 0;
-   candidate_t *c = NULL;
+   candidate_t *candidates = 0;
+   struct list_head *tmp, *n;
    int port = 0, base_port = 0;
    char buffer[100];
 
@@ -410,10 +411,9 @@ snw_ice_cb_new_remote_candidate(agent_t *agent, uint32_t stream_id,
       ERROR(log, "component not found, cid=%u, sid=%u", component_id, stream_id);
       return;
    }
-
-   //TODO: free candidates 
    candidates = ice_agent_get_remote_candidates(agent, component_id, stream_id);
-   TAILQ_FOREACH(c,candidates,list) {
+   list_for_each_safe(tmp,n,&candidates->list) {
+      candidate_t *c = list_entry(tmp,candidate_t,list);
       if(candidate == 0) {
          if(!strcasecmp(c->foundation, foundation)) {
             candidate = c;
@@ -877,7 +877,7 @@ snw_ice_create_media_component(snw_ice_session_t *session, snw_ice_stream_t *str
    rtp->stream = stream;
    rtp->id = cid;
    rtp->is_started = 0;
-   TAILQ_INIT(&rtp->remote_candidates);
+   INIT_LIST_HEAD(&rtp->remote_candidates.list);
    snw_component_insert(&stream->components, rtp);
    if (is_rtcp)
       stream->rtcp_component = rtp;
@@ -1348,13 +1348,15 @@ snw_ice_merge_components(snw_ice_session_t *session) {
 int ice_setup_remote_credentials(snw_ice_session_t *session, snw_ice_stream_t *stream, snw_ice_component_t *component) {
    snw_log_t *log = 0;
    candidate_t *c = 0;
+   struct list_head *gsc,*n;
    char *ufrag = 0, *pwd = 0;
 
    if (!session) return -1;
    log = session->ice_ctx->log;
 
    /* FIXME: make sense? */
-   TAILQ_FOREACH(c,&component->remote_candidates,list) {
+   list_for_each_safe(gsc,n,&component->remote_candidates.list) {
+      c = list_entry(gsc,candidate_t,list);
       DEBUG(log, "remote stream info, sid=%d, cid=%d", c->stream_id, c->component_id);
       if (c->username && !ufrag)
          ufrag = c->username;
@@ -1415,7 +1417,7 @@ ice_setup_remote_candidates(snw_ice_session_t *session, uint32_t stream_id, uint
       return;
    }
 
-   if(TAILQ_EMPTY(&component->remote_candidates)) {
+   if(list_empty(&component->remote_candidates.list)) {
       WARN(log, "candidate list is empty");
       return;
    }
