@@ -374,18 +374,42 @@ snw_ice_cb_component_state_changed(agent_t *agent,
 }  
 
 void
-snw_ice_handle_remote_candidate(snw_ice_session_t *session, 
-    agent_t *agent, uint32_t stream_id, uint32_t component_id, char *foundation) {
+snw_ice_cb_new_remote_candidate(agent_t *agent, uint32_t stream_id,
+                     uint32_t component_id, char *foundation, void *data) {
    char address[ICE_ADDRESS_STRING_LEN], base_address[ICE_ADDRESS_STRING_LEN];
+   snw_ice_session_t *session = (snw_ice_session_t *)data;
    snw_log_t *log = 0;
-   candidate_head_t *candidates = 0;
+   snw_ice_stream_t *stream = 0;
+   snw_ice_component_t *component = 0;
    candidate_t *candidate = 0;
+   candidate_head_t *candidates = 0;
    candidate_t *c = NULL;
    int port = 0, base_port = 0;
    char buffer[100];
 
    if (!session) return;
    log = session->ice_ctx->log;
+
+   DEBUG(log, "discovered new remote candidate, cid=%u, sid=%u, foundation=%s",
+          component_id, stream_id, foundation);
+
+   if (component_id > 1 && IS_FLAG(session, WEBRTC_RTCPMUX)) {
+      DEBUG(log, "ignore new candidate, component=%d,rtcpmux=%u",
+            component_id, IS_FLAG(session, WEBRTC_RTCPMUX));
+      return;
+   }
+
+   stream = snw_stream_find(&session->streams, stream_id);
+   if (!stream) {
+      ERROR(log, "stream not found, sid=%u", stream_id);
+      return;
+   }
+
+   component = snw_component_find(&stream->components, component_id);
+   if (!component) {
+      ERROR(log, "component not found, cid=%u, sid=%u", component_id, stream_id);
+      return;
+   }
 
    //TODO: free candidates 
    candidates = ice_agent_get_remote_candidates(agent, component_id, stream_id);
@@ -437,43 +461,6 @@ snw_ice_handle_remote_candidate(snw_ice_session_t *session,
 
 candidatedone:
    candidate_free(candidate);
-  return;
-}
-
-void
-snw_ice_cb_new_remote_candidate(agent_t *agent, uint32_t stream_id,
-                     uint32_t component_id, char *foundation, void *data) {
-   snw_ice_session_t *session = (snw_ice_session_t *)data;
-   snw_log_t *log = 0;
-   snw_ice_stream_t *stream = 0;
-   snw_ice_component_t *component = 0;
-
-   if (!session) return;
-   log = session->ice_ctx->log;
-
-   DEBUG(log, "discovered new remote candidate, cid=%u, sid=%u, foundation=%s",
-          component_id, stream_id, foundation);
-
-   if (component_id > 1 && IS_FLAG(session, WEBRTC_RTCPMUX)) {
-      DEBUG(log, "ignore new candidate, component=%d,rtcpmux=%u",
-            component_id, IS_FLAG(session, WEBRTC_RTCPMUX));
-      return;
-   }
-
-   stream = snw_stream_find(&session->streams, stream_id);
-   if (!stream) {
-      ERROR(log, "stream not found, sid=%u", stream_id);
-      return;
-   }
-
-   component = snw_component_find(&stream->components, component_id);
-   if (!component) {
-      ERROR(log, "component not found, cid=%u, sid=%u", component_id, stream_id);
-      return;
-   }
-
-   //TODO: what usage of new remote candidate
-   //snw_ice_handle_remote_candidate(session,agent,stream_id,component_id,foundation);
    return;
 }
 
