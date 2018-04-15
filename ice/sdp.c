@@ -323,8 +323,8 @@ ice_generate_candidate_attribute(snw_ice_session_t *session, char *sdp,
    agent_t* agent = 0;
    snw_ice_stream_t *stream = 0;
    snw_ice_component_t *component = 0;
-   struct list_head *i,*n;
-   candidate_t *candidates;
+   candidate_head_t *candidates = NULL;
+   candidate_t *c = NULL;
 
 
    if (!session || !session->agent || !sdp)
@@ -348,12 +348,11 @@ ice_generate_candidate_attribute(snw_ice_session_t *session, char *sdp,
    if (candidates == NULL )
       return;
 
-   DEBUG(log, "got candidates, size=%u, sid=%u, cid=%u",
-         list_size(&candidates->list), stream_id, component_id);
+   //DEBUG(log, "got candidates, size=%u, sid=%u, cid=%u",
+   //      list_size(&candidates->list), stream_id, component_id);
 
-   list_for_each_safe(i,n,&candidates->list) {
+   TAILQ_FOREACH(c,candidates,list) {
       char buffer[100] = {0};
-      candidate_t *c = list_entry(i,candidate_t,list);
       char address[ICE_ADDRESS_STRING_LEN], base_address[ICE_ADDRESS_STRING_LEN];
       int port = 0, base_port = 0;
       address_to_string(&(c->addr), (char *)&address);
@@ -404,10 +403,10 @@ ice_generate_candidate_attribute(snw_ice_session_t *session, char *sdp,
    }
 
    DEBUG(log, "FXIME: free list of candidates");
-   /*list_for_each_safe(i,n,&candidates->list) {
-      candidate_t *c = list_entry(i,candidate_t,list);
+   /*candidate_t *c = NULL;
+   TAILQ_FOREACH(c,candidates,list) {
       candidate_free(c);
-      list_del(i);
+      TAILQ_REMOVE(candidates,c,list);
    }*/
 
    return;
@@ -504,14 +503,14 @@ snw_ice_sdp_create(snw_ice_session_t *session) {
 void 
 snw_ice_try_start_component(snw_ice_session_t *session, snw_ice_stream_t *stream, 
       snw_ice_component_t *component, candidate_t *candidate) {
-   candidate_t candidates;
+   candidate_head_t candidates;
    candidate_t *c = NULL;
    int added = 0;
 
    if (!session || !stream || !component || !candidate)
       return;
 
-   list_add(&candidate->list,&component->remote_candidates.list);
+   TAILQ_INSERT_HEAD(&component->remote_candidates,candidate,list);
    if (!IS_FLAG(session, WEBRTC_START)) {
       SET_FLAG(session, WEBRTC_START);
    }
@@ -520,9 +519,9 @@ snw_ice_try_start_component(snw_ice_session_t *session, snw_ice_stream_t *stream
       ice_setup_remote_candidates(session, component->stream->id, component->id);
    } else {
       c = candidate_copy(candidate);
-      memset(&candidates,0,sizeof(candidate_t));
-      INIT_LIST_HEAD(&candidates.list);
-      list_add(&c->list,&candidates.list);
+      memset(&candidates,0,sizeof(candidate_head_t));
+      TAILQ_INIT(&candidates);
+      TAILQ_INSERT_HEAD(&candidates,c,list);
       added = ice_agent_set_remote_candidates(session->agent,stream->id,
                                               component->id,&candidates); 
       if (added < 1) {
@@ -531,7 +530,6 @@ snw_ice_try_start_component(snw_ice_session_t *session, snw_ice_stream_t *stream
 
       //DEBUG("candidate added, added=%u",added);
       /* clean resources */
-      INIT_LIST_HEAD(&candidates.list);
       candidate_free(c);
    }
 
