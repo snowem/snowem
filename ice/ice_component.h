@@ -41,7 +41,7 @@ struct snw_ice_component {
 
    dtls_ctx_t       *dtls;
    snw_ice_stream_t *stream;
-   candidate_t       remote_candidates;
+   candidate_head_t  remote_candidates;
    int64_t           fir_latest;   
    uint8_t           fir_seq;
 
