@@ -23,7 +23,7 @@
 #include "ice_channel.h"
 #include "ice_session.h"
 #include "ice_stream.h"
-#include "json/json.h"
+#include "json-c/json.h"
 #include "sdp.h"
 #include "process.h"
 #include "rtp/rtp.h"
@@ -31,44 +31,49 @@
 void
 snw_ice_api_handler(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
    snw_log_t *log = 0;
-   Json::Value root;
-   Json::Reader reader;
-   Json::FastWriter writer;
-   std::string output;
+   json_object *jobj = 0, *jmsgtype = 0, *japi = 0;
    snw_ice_api_t *a = 0;
-   uint32_t msgtype, api;
-   int ret;
+   uint32_t msgtype = 0, api = 0;
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
-
-   ret = reader.parse(data,data+len,root,0);
-   if (!ret) {
+   
+   jobj = json_tokener_parse(data);
+   if (!jobj) {
       ERROR(log,"error json format, s=%s",data);
       return;
    }
+   DEBUG(log,"api handler parsed json: %s",
+         json_object_to_json_string_ext(
+           jobj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
 
-   try {
-      msgtype = root["msgtype"].asUInt();
-      if (msgtype != SNW_ICE) {
-         ERROR(log, "wrong msg, msgtype=%u data=%s", msgtype, data);
-         return;
-      }
-      api = root["api"].asUInt();
-   } catch (...) {
-      ERROR(log, "json format error, data=%s", data);
+   json_object_object_get_ex(jobj,"msgtype",&jmsgtype);
+   json_object_object_get_ex(jobj,"api",&japi);
+   if (!jmsgtype || json_object_get_type(jmsgtype) != json_type_int
+       || !japi || json_object_get_type(japi) != json_type_int) {
+     ERROR(log,"error json format, s=%s",data);
+     goto done;
    }
+   msgtype = json_object_get_int(jmsgtype);
+   if (msgtype != SNW_ICE) {
+      ERROR(log, "wrong msg, msgtype=%u data=%s", msgtype, data);
+      goto done;
+   }
+   api = json_object_get_int(japi);
 
    TRACE(log, "looking for api handler, api=%u", api);
    TAILQ_FOREACH(a,&ice_ctx->api_handlers,list) {
-      if (a->api == api) {
+      if (a->msgtype == msgtype) {
          snw_ice_handlers_t *h = 0;
          TAILQ_FOREACH(h,&a->handlers,list) {
-            h->handler(ice_ctx,data,len,flowid);
+            if (h->api == api)
+              h->handler(ice_ctx,jobj,0,flowid);
          }
       }
    }
 
+done:
+   json_object_put(jobj);
    return;
 }
 
@@ -92,7 +97,6 @@ snw_ice_dispatch_msg(int fd, short int event,void* data) {
          return;
       
       buf[len] = 0; // null-terminated string
-      snw_ice_process_msg(ice_ctx,buf,len,flowid);
       snw_ice_api_handler(ice_ctx,buf,len,flowid);
    }
 
@@ -128,25 +132,13 @@ ice_dtls_init(snw_ice_context_t *ctx, const char* pem, const char *key) {
 //FIXME: remove these fucntions
 void  
 test_api1(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
-   /*snw_log_t *log = 0;
+   snw_log_t *log = 0;
    if (!ice_ctx) return;
    log = ice_ctx->log;
-   DEBUG(log, "got api 1");*/
+   DEBUG(log, "got api 1");
 
    return;
 }
-
-void  
-test_api2(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
-
-   return;
-}
-
-void  
-test_api3(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
-   return;
-}
-
 
 void 
 snw_ice_log_cb(int severity, const char *msg, void *data) {
@@ -161,24 +153,34 @@ snw_ice_log_cb(int severity, const char *msg, void *data) {
    return; 
 }
 
-   static snw_ice_api_t apis[] = {
-      {.list = {0,0}, .api = SNW_ICE_CREATE},
-      {.list = {0,0}, .api = SNW_ICE_CONNECT},
-      {.list = {0,0}, .api = SNW_ICE_STOP}
-   };
-   static snw_ice_handlers_t handlers[] = {
-      {.list = {0,0}, .api = SNW_ICE_CREATE, .handler = test_api1},
-      {.list = {0,0}, .api = SNW_ICE_CONNECT, .handler = test_api2},
-      {.list = {0,0}, .api = SNW_ICE_STOP, .handler = test_api3}
-   };
+snw_ice_api_t g_ice_apis[] = {
+   {.msgtype = SNW_ICE},
+   //{.msgtype = SNW_CORE},
+   //{.msgtype = SNW_EVENT},
+   //{.msgtype = SNW_SIG},
+   //{.msgtype = SNW_CHANNEL}
+};
+
+snw_ice_handlers_t g_ice_handlers[] = {
+   {.msgtype = SNW_ICE, .api = SNW_ICE_CREATE, .handler = snw_ice_create_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_CONNECT, .handler = snw_ice_connect_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_PUBLISH, .handler = snw_ice_publish_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_PLAY, .handler = snw_ice_play_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_STOP, .handler = snw_ice_stop_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_SDP, .handler = snw_ice_sdp_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_CANDIDATE, .handler = snw_ice_candidate_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_CONTROL, .handler = snw_ice_auth_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_AUTH, .handler = snw_ice_control_msg},
+   {.msgtype = SNW_ICE, .api = SNW_ICE_FIR, .handler = snw_ice_fir_msg}
+};
 
 void 
 snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    snw_ice_api_t *h = 0;
    snw_ice_context_t *ice_ctx;
    struct event *q_event;
-   int api_num = sizeof(apis)/sizeof(snw_ice_api_t);
-   int handler_num = sizeof(handlers)/sizeof(snw_ice_handlers_t);
+   int api_num = sizeof(g_ice_apis)/sizeof(snw_ice_api_t);
+   int handler_num = sizeof(g_ice_handlers)/sizeof(snw_ice_handlers_t);
    
    if (!ctx) return;
 
@@ -215,14 +217,14 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
 
    TAILQ_INIT(&ice_ctx->api_handlers);
    for (int i=0; i<api_num; i++) {
-      TAILQ_INIT(&apis[i].handlers);
-      TAILQ_INSERT_TAIL(&ice_ctx->api_handlers, &apis[i], list);
+      TAILQ_INIT(&g_ice_apis[i].handlers);
+      TAILQ_INSERT_TAIL(&ice_ctx->api_handlers, &g_ice_apis[i], list);
    }
 
    TAILQ_FOREACH(h, &ice_ctx->api_handlers,list) {
       for (int j=0; j<handler_num; j++) {
-         if (h->api == handlers[j].api)
-            TAILQ_INSERT_TAIL(&h->handlers, &handlers[j], list);
+         if (h->msgtype == g_ice_handlers[j].msgtype)
+            TAILQ_INSERT_TAIL(&h->handlers, &g_ice_handlers[j], list);
       }
    }
 
@@ -257,17 +259,6 @@ ice_rtp_established(snw_ice_session_t *session) {
       // start replaying a stream.
    }
    
-   /*{//deprecated impl
-      Json::Value root,notify;
-      Json::FastWriter writer;
-      std::string output;
-      notify["msgtype"] = SNW_EVENT;
-      notify["api"] = SNW_EVENT_ICE_CONNECTED;
-      notify["flowid"] = session->flowid;
-      notify["channelid"] = session->channelid;
-      output = writer.write(notify);
-      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),session->flowid);
-   }*/
 
    return;
 }
@@ -286,7 +277,6 @@ snw_ice_init_log(snw_context_t *ctx) {
 int
 snw_ice_init_ssl(snw_context_t *ctx) {
    SSL_CTX  *server_ctx = NULL;
-   std::string cert_str,key_str;
 
    /* Initialize the OpenSSL library */
    SSL_load_error_strings();

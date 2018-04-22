@@ -28,9 +28,6 @@ extern "C" {
 #define OPUS_PT   111
 #define VP8_PT    100
 
-void
-snw_ice_process_msg(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid);
-
 void 
 ice_setup_remote_candidates(snw_ice_session_t *session, uint32_t stream_id, uint32_t component_id);
 
@@ -39,6 +36,36 @@ ice_srtp_handshake_done(snw_ice_session_t *session, snw_ice_component_t *compone
 
 void 
 send_rtp_pkt(snw_ice_session_t *session, int control, int video, char* buf, int len);
+
+void
+snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_auth_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_control_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+
+void
+snw_ice_fir_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
 
 #ifdef __cplusplus
 }

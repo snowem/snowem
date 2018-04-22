@@ -38,17 +38,18 @@ extern "C" {
 
 typedef struct snw_ice_handlers snw_ice_handlers_t;
 struct snw_ice_handlers {
-   TAILQ_ENTRY(snw_ice_handlers) list;
+   uint32_t         msgtype;
    uint32_t         api;
-   void           (*handler)(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid);
+   void           (*handler)(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid);
+   TAILQ_ENTRY(snw_ice_handlers) list;
 };
 typedef TAILQ_HEAD(ice_handlers_head, snw_ice_handlers) ice_handlers_head_t;
 
 typedef struct snw_ice_api snw_ice_api_t;
 struct snw_ice_api {
-   TAILQ_ENTRY(snw_ice_api) list;
-   uint32_t            api;
+   uint32_t            msgtype;
    ice_handlers_head_t handlers;
+   TAILQ_ENTRY(snw_ice_api) list;
 };
 typedef TAILQ_HEAD(ice_api_head, snw_ice_api) ice_api_head_t;
 

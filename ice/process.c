@@ -25,41 +25,47 @@
 #include "core/utils.h"
 #include "ice/ice_channel.h"
 #include "ice/ice_session.h"
+#include "ice/msg.h"
 #include "ice/process.h"
-#include "json/json.h"
+#include "json-c/json.h"
+#include "msg.h"
 #include "sdp.h"
 #include "rtp/rtcp.h"
 
 void ice_send_candidate(snw_ice_session_t *session,
     int video, char *buffer, int len) {
    snw_log_t *log = 0;
-   Json::Value root,candidate;
-   std::string output;
-   Json::FastWriter writer;
-   std::string str(buffer,len);
+   json_object *jobj = 0, *candobj = 0;
+   const char *str = 0;
 
    if (!session) return;
    log = session->ice_ctx->log;
 
-   root["msgtype"] = SNW_ICE;
-   root["api"] = SNW_ICE_CANDIDATE;
-   root["roomid"] = 0;
-   root["callid"] = "callid";
-   candidate["type"] = "candidate";
+   jobj = json_object_new_object();
+   candobj = json_object_new_object();
+   if (!jobj || !candobj) return;
+   json_object_object_add(jobj, "msgtype", json_object_new_int(SNW_ICE));
+   json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_CANDIDATE));
+   json_object_object_add(jobj, "roomid", json_object_new_int(0));
+   json_object_object_add(jobj, "callid", json_object_new_string("callid"));
+   json_object_object_add(jobj, "type", json_object_new_string("candidate"));
    if (video) {
-      candidate["label"] = 1;
-      candidate["id"] = "video";
+     json_object_object_add(candobj, "label", json_object_new_int(1));
+     json_object_object_add(candobj, "id", json_object_new_string("video"));
    } else {
-      candidate["label"] = 0;
-      candidate["id"] = "audio";
+     json_object_object_add(candobj, "label", json_object_new_int(0));
+     json_object_object_add(candobj, "id", json_object_new_string("audio"));
    }
-   candidate["candidate"] = str;
-   root["candidate"] = candidate;
+   json_object_object_add(candobj, "candidate", json_object_new_string(buffer));
+   json_object_object_add(jobj, "candidate", candobj);
+   str = snw_ice_msg_to_string(jobj);
+   if (!str) return;
 
-   output = writer.write(root);
-   DEBUG(log, "sending sdp, sdp=%s",output.c_str());
+   DEBUG(log, "sending candidate, candidate=%s", str);
    snw_shmmq_enqueue(session->ice_ctx->task_ctx->resp_mq,0,
-     output.c_str(),output.size(),session->flowid);
+     str,strlen(str),session->flowid);
+
+   json_object_put(jobj);
 
    return;
 }
@@ -177,47 +183,46 @@ snw_ice_sdp_send_candidates(snw_ice_session_t *session) {
 }
 
 void
-snw_ice_send_msg_to_core(snw_ice_context_t *ice_ctx, Json::Value &root, 
+snw_ice_send_msg_to_core(snw_ice_context_t *ice_ctx, json_object *jobj, 
       uint32_t flowid, int rc) {
-   Json::FastWriter writer;
-   std::string output;
+   const char *str;
 
-   root["rc"] = rc;
-   output = writer.write(root);
-   snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),flowid);
+   json_object_object_add(jobj,"rc",json_object_new_int(rc));
+   str = snw_ice_msg_to_string(jobj);
+   if (!str) return;
+   snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,str,strlen(str),flowid);
 
    return;
 }
 
 void
-snw_ice_create_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
+snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
+   json_object *jobj = (json_object*)data;
+   json_object *jchannel = 0;
    snw_ice_channel_t *channel = 0;
    uint32_t channelid = 0;
    int is_new = 0;
 
-   try {
-      channelid = root["channelid"].asUInt();
-      channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,channelid,&is_new);
-      if (!channel || !is_new) {
-         ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
-               flowid, is_new);
-         snw_ice_send_msg_to_core(ice_ctx,root,flowid,-1);
-         return;
-      }
-      DEBUG(log,"new channel created, channelid=%u", channelid);
-      channel->peerid = flowid;
+   if (!jobj) return;
 
-      //TODO: not useful for frontend?
-      root["id"] = flowid;
-      root["channelid"] = channelid;
-      root["rc"] = 0;
-      snw_ice_send_msg_to_core(ice_ctx,root,flowid,0);
+   json_object_object_get_ex(jobj,"channelid",&jchannel);
 
-   } catch (...) {
-      ERROR(log, "json format error");
+   if (!jchannel || json_object_get_type(jchannel) != json_type_int)
+     return;
+   channelid = json_object_get_int(jchannel);
+   channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,channelid,&is_new);
+   if (!channel || !is_new) {
+      ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
+            flowid, is_new);
+      snw_ice_send_msg_to_core(ice_ctx,jobj,flowid,-1);
       return;
    }
+
+   //TODO: not useful for frontend?
+   json_object_object_add(jobj,"id",json_object_new_int(flowid));
+   json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
+   snw_ice_send_msg_to_core(ice_ctx,jobj,flowid,0);
 
    return;
 }
@@ -244,9 +249,8 @@ static void
 snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *user_data) {
    snw_ice_session_t *session = (snw_ice_session_t *)user_data;
    snw_log_t *log = session->ice_ctx->log;
-   Json::Value root,sdp;
-   std::string output;
-   Json::FastWriter writer;
+   json_object *jobj = 0, *sdpobj = 0;
+   const char *str = 0;
    int ret = 0;
 
    if (!session) return;
@@ -270,16 +274,24 @@ snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *us
          return;
       }
 
+      jobj = json_object_new_object();
+      sdpobj = json_object_new_object();
+      if (!jobj || !sdpobj) return;
+      json_object_object_add(jobj, "msgtype", json_object_new_int(SNW_ICE));
+      json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_SDP));
+      json_object_object_add(sdpobj, "type", json_object_new_string("offer"));
+      json_object_object_add(sdpobj, "sdp", json_object_new_string(session->local_sdp));
+      json_object_object_add(jobj, "sdp", sdpobj);
+      str = snw_ice_msg_to_string(jobj);
+      if (!str) return;
+
       //send sdp into to client.
-      root["msgtype"] = SNW_ICE;
-      root["api"] = SNW_ICE_SDP;
-      root["sdp"]["type"] = "offer";
-      root["sdp"]["sdp"] = session->local_sdp;
-      output = writer.write(root);
       TRACE(log, "sending sdp offer to peer, flowid=%u, len=%u, sdp=%s", 
-                 session->flowid, output.size(), output.c_str());
+                 session->flowid, strlen(str), str);
       snw_shmmq_enqueue(session->ice_ctx->task_ctx->resp_mq,0,
-        output.c_str(),output.size(),session->flowid);
+        str,strlen(str),session->flowid);
+
+      json_object_put(jobj);
 
       snw_ice_sdp_send_candidates(session);
    }
@@ -1089,21 +1101,22 @@ snw_ice_offer_sdp(snw_ice_context_t *ice_ctx,
 }
 
 void
-snw_ice_connect_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
+snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
-   std::string peer_type;
+   json_object *jobj = (json_object*)data;
+   const char* peer_type;
    uint32_t channelid = 0;
    int is_new = 0;
    
-   try {
-      channelid = root["channelid"].asUInt();
-      peer_type = root["peer_type"].asString();
-   } catch (...) {
-      ERROR(log, "json format error");
-      return;
-   }
+   if (!jobj) return;
 
+   channelid = snw_ice_msg_get_int(jobj,"channelid");
+   peer_type = snw_ice_msg_get_string(jobj,"peer_type");
+   if (channelid == (uint32_t)-1 || peer_type == 0)
+     return;
+ 
+   DEBUG(log,"connect msg, flowid=%u", flowid);
    session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,flowid,&is_new);
    if (!session) {
       ERROR(log,"failed to get session, flowid=%u",flowid);
@@ -1117,7 +1130,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flow
    }
 
    DEBUG(log,"init new session, channelid=%u, peer_type=%s, flowid=%u", 
-         channelid, peer_type.c_str(), session->flowid);
+         channelid, peer_type, session->flowid);
    
    session->channelid = 0;
    session->channel = 0;
@@ -1129,14 +1142,14 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flow
    session->rtp_ctx.send_pkt = send_pkt_callback;
    LIST_INIT(&session->streams);
 
-   if (!strncmp(peer_type.c_str(),"pub",3)) {
+   if (!strncmp(peer_type,"pub",3)) {
       session->peer_type = PEER_TYPE_PUBLISHER;
-   } else if (!strncmp(peer_type.c_str(),"pla",3)) {
+   } else if (!strncmp(peer_type,"pla",3)) {
       session->peer_type = PEER_TYPE_PLAYER;
-   } else if (!strncmp(peer_type.c_str(),"p2p",3)) {
+   } else if (!strncmp(peer_type,"p2p",3)) {
       session->peer_type = PEER_TYPE_P2P;
    } else {
-      ERROR(log,"unknown peer type, flowid=%u, peer_type=%s",flowid,peer_type.c_str());
+      ERROR(log,"unknown peer type, flowid=%u, peer_type=%s",flowid,peer_type);
       session->peer_type = PEER_TYPE_UNKNOWN;
       return;
    }
@@ -1276,7 +1289,7 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
 }
 
 void
-snw_ice_stop_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
+snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
    
@@ -1425,15 +1438,14 @@ ice_setup_remote_candidates(snw_ice_session_t *session, uint32_t stream_id, uint
 }
 
 void
-snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
+snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
+   json_object *jobj = (json_object*)data;
+   json_object *jsepobj = 0;
    ice_sdp_attr_t sdp_attr;
-   Json::Value type,jsep,jsep_trickle,sdp;
-   Json::FastWriter writer;
    const char *jsep_type = 0;
-   char *jsep_sdp = 0;
-   std::string output;
+   const char *jsep_sdp = 0;
    int ret = 0;
 
    session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
@@ -1442,88 +1454,67 @@ snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) 
       return;
    }
 
-   try {
+   jsepobj = snw_ice_msg_get_object(jobj,"sdp");
+   if (!jsepobj) goto error;
+   jsep_type = snw_ice_msg_get_string(jsepobj,"type");
+   if (!jsep_type) goto error;
 
-      jsep = root["sdp"];
-      if (!jsep.isNull()) {
-         type = jsep["type"];
-         jsep_type = type.asString().c_str();
-      } else {
-         output = writer.write(root);
-         ERROR(log, "failed to get sdp type, root=%s",output.c_str());
-         goto jsondone;
-      }
-
-      if (!strcasecmp(jsep_type, "answer")) {
-         // only handle answer
-      } else if(!strcasecmp(jsep_type, "offer")) {
-         ERROR(log, "not handling offer, type=%s", jsep_type);
-         goto jsondone;
-      } else {
-         ERROR(log, "unknown message type, type=%s", jsep_type);
-         goto jsondone;
-      }
-      sdp = jsep["sdp"];
-      if (sdp.isNull() || !sdp.isString() ) {
-         ERROR(log, "sdp not found");
-         goto jsondone;
-      }
-
-      jsep_sdp = strdup(sdp.asString().c_str()); //FIXME: don't use strdup
-      TRACE(log, "Remote SDP, trickle=%u, s=%s", sdp_attr.trickle, jsep_sdp);
-
-      ret = snw_ice_get_sdp_attr(ice_ctx,jsep_sdp,&sdp_attr);
-      if (ret < 0) {
-         ERROR(log, "invalid sdp, sdp=%s",jsep_sdp);
-         goto jsondone;
-      }
-
-      if (!IS_FLAG(session, WEBRTC_READY)) {
-         session->remote_sdp = strdup(jsep_sdp);
-         snw_ice_sdp_handle_answer(session, jsep_sdp);
-
-         DEBUG(log, "setting webrtc flags, bundle=%u,rtcpmux=%u,trickle=%u",
-                  sdp_attr.bundle,sdp_attr.rtcpmux,sdp_attr.trickle);
-         if (sdp_attr.bundle) {
-            SET_FLAG(session, WEBRTC_BUNDLE);
-            snw_ice_merge_streams(session,sdp_attr.audio,sdp_attr.video);
-         } else {
-            CLEAR_FLAG(session, WEBRTC_BUNDLE);
-         }
-
-         if (sdp_attr.rtcpmux) {
-            SET_FLAG(session, WEBRTC_RTCPMUX);
-            snw_ice_merge_components(session);
-         } else {
-            CLEAR_FLAG(session, WEBRTC_RTCPMUX);
-         }
-
-         //FIXME: handle trickle anywhere?
-         /*if (sdp_attr.trickle) {
-            SET_FLAG(session, WEBRTC_TRICKLE);
-         } else {
-            CLEAR_FLAG(session, WEBRTC_TRICKLE);
-         }*/
-
-
-      } else {
-         ERROR(log, "state error, flags=%u",session->flags);
-         goto jsondone;
-      }
-
-      root["rc"] = 0;
-      output = writer.write(root);
-      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),flowid);
-   } catch (...) {
-      root["rc"] = -1;
-      output = writer.write(root);
-      DEBUG(log, "json format error, root=%s",output.c_str());
-      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),flowid);
+   if (!strcasecmp(jsep_type, "answer")) {
+      // only handle answer
+   } else if(!strcasecmp(jsep_type, "offer")) {
+      ERROR(log, "not handling offer, type=%s", jsep_type);
+      goto error;
+   } else {
+      ERROR(log, "unknown message type, type=%s", jsep_type);
+      goto error;
    }
 
-jsondone:
-   if (jsep_sdp)
-      free(jsep_sdp);
+   jsep_sdp = snw_ice_msg_get_string(jsepobj,"sdp");
+   if (!jsep_sdp) goto error;
+
+   TRACE(log, "Remote SDP, trickle=%u, s=%s", sdp_attr.trickle, jsep_sdp);
+
+   ret = snw_ice_get_sdp_attr(ice_ctx,jsep_sdp,&sdp_attr);
+   if (ret < 0) {
+      ERROR(log, "invalid sdp, sdp=%s",jsep_sdp);
+      goto error;
+   }
+
+   if (!IS_FLAG(session, WEBRTC_READY)) {
+      session->remote_sdp = strdup(jsep_sdp);
+      snw_ice_sdp_handle_answer(session, jsep_sdp);
+
+      DEBUG(log, "setting webrtc flags, bundle=%u,rtcpmux=%u,trickle=%u",
+               sdp_attr.bundle,sdp_attr.rtcpmux,sdp_attr.trickle);
+      if (sdp_attr.bundle) {
+         SET_FLAG(session, WEBRTC_BUNDLE);
+         snw_ice_merge_streams(session,sdp_attr.audio,sdp_attr.video);
+      } else {
+         CLEAR_FLAG(session, WEBRTC_BUNDLE);
+      }
+
+      if (sdp_attr.rtcpmux) {
+         SET_FLAG(session, WEBRTC_RTCPMUX);
+         snw_ice_merge_components(session);
+      } else {
+         CLEAR_FLAG(session, WEBRTC_RTCPMUX);
+      }
+
+      ////FIXME: handle trickle anywhere?
+      //if (sdp_attr.trickle) {
+      //   SET_FLAG(session, WEBRTC_TRICKLE);
+      //} else {
+      //   CLEAR_FLAG(session, WEBRTC_TRICKLE);
+      //}
+      snw_ice_send_msg_to_core(ice_ctx, jobj, flowid, 0);
+      return;
+
+   } else {
+      ERROR(log, "state error, flags=%u",session->flags);
+   }
+
+error:
+   snw_ice_send_msg_to_core(ice_ctx, jobj, flowid, -1);
    return;
 }
 
@@ -1596,9 +1587,10 @@ int ice_sdp_handle_candidate(snw_ice_stream_t *stream, const char *candidate) {
 }
 
 int 
-snw_ice_process_new_candidate(snw_ice_session_t *session, Json::Value &candidate) {
+snw_ice_process_new_candidate(snw_ice_session_t *session, json_object *candidate) {
    snw_log_t *log = 0;
-   Json::Value mid, mline, rc, done;
+   int done = -1, mline = -1;
+   const char *mid = 0, *rc = 0;
    snw_ice_stream_t *stream = 0;
    int video = 0;
    int ret = 0;
@@ -1606,30 +1598,21 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, Json::Value &candidate
    if (!session) return -1;
    log = session->ice_ctx->log;
 
-   done = candidate["done"];
-   if (!done.isNull()) {
+   done = snw_ice_msg_get_int(candidate,"done");
+   if (done != -1) {
       DEBUG(log, "gathering remote candidates is done");
       SET_FLAG(session, WEBRTC_GATHER_DONE);
       return 0;
    }
 
-   mid = candidate["id"];
-   if (mid.isNull() || !mid.isString()) {
-      return -2;
-   }
+   mid = snw_ice_msg_get_string(candidate,"id");
+   mline = snw_ice_msg_get_int(candidate,"label");
+   rc = snw_ice_msg_get_string(candidate,"candidate");
+   if (!mid || mline == -1 || !rc)
+     return -1;
 
-   mline = candidate["label"];
-   if (mline.isNull()|| !mline.isInt() || mline.asInt() < 0) {
-      return -3;
-   }
-
-   rc = candidate["candidate"];
-   if (rc.isNull() || !rc.isString()) {
-      return -4;
-   }
-
-   DEBUG(log, "remote candidate, mid=%s, candidate=%s", mid.asString().c_str(), rc.asString().c_str());
-   if ( !strncasecmp(mid.asString().c_str(),"video",5) ) {
+   DEBUG(log, "remote candidate, mid=%s, candidate=%s", mid, rc);
+   if ( !strncasecmp(mid,"video",5) ) {
       video = 1;
    }
 
@@ -1638,7 +1621,7 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, Json::Value &candidate
       return -5;
    }
 
-   ret = ice_sdp_handle_candidate(stream, rc.asString().c_str());
+   ret = ice_sdp_handle_candidate(stream, rc);
    if(ret != 0) {
       ERROR(log, "failed to handle candidate, ret=%d", ret);
       return -6;
@@ -1648,12 +1631,12 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, Json::Value &candidate
 }
 
 void
-snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
+snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
-   Json::Value candidate;
-   Json::FastWriter writer;
-   std::string output;
+   json_object *jobj = (json_object*)data;
+   json_object *cand_obj = 0;
+   int ret = -1;
 
    session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
    if (!session) {
@@ -1661,48 +1644,32 @@ snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t fl
       return;
    }
 
-   try {
-      candidate = root["candidate"];
+   cand_obj = snw_ice_msg_get_object(jobj,"candidate");
+   if (!cand_obj) return;
 
-      output = writer.write(candidate);
-      DEBUG(log, "receive candidate, s=%s",output.c_str());
-     
-      if (!session->audio_stream && !session->video_stream) {
-         ERROR(log, "no stream available");
-         return;
-      }    
- 
-      if ( !candidate.isNull() ) {
-         int ret = 0; 
-         if ((ret = snw_ice_process_new_candidate(session, candidate)) != 0) { 
-            DEBUG(log, "got error, ret=%d", ret);
-            return;
-         }    
-      } else {
-         //discard request
-         ERROR(log, "candidate is null");
-         return;
-      }    
+   DEBUG(log,"candidate info: %s",
+         json_object_to_json_string_ext(
+           cand_obj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
 
-
-      root["rc"] = 0; 
-      output = writer.write(root);
-      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),flowid);
-
-   } catch (...) {
-      root["rc"] = -1;
-      output = writer.write(root);
-      DEBUG(log, "json format error, root=%s",output.c_str());
-      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),flowid);
+   if (!session->audio_stream && !session->video_stream) {
+      ERROR(log, "no stream available");
+      return;
    }
 
+   if ((ret = snw_ice_process_new_candidate(session, cand_obj)) != 0) { 
+      DEBUG(log, "got error, ret=%d", ret);
+      return;
+   }    
+
+   snw_ice_send_msg_to_core(ice_ctx, jobj, flowid, 0);
    return;
 }
 
 void
-snw_ice_publish_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
+snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = 0;
    snw_ice_session_t *session = 0;
+   json_object *jobj = (json_object*)data;
    uint32_t channelid;
    snw_ice_channel_t *channel = 0;
 
@@ -1712,12 +1679,8 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flow
    session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
    if (!session) return;
 
-   try {
-     channelid = root["channelid"].asUInt();
-   } catch (...) {
-     ERROR(log, "json format error");
-     return;
-   }
+   channelid = snw_ice_msg_get_int(jobj,"channelid");
+   if (channelid == (uint32_t)-1) return;
 
    DEBUG(log, "channel is publishing, flowid=%u, channelid=%u", 
          flowid, channelid);
@@ -1730,28 +1693,24 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flow
    session->channel = channel;
 
    SET_FLAG(session,ICE_PUBLISHER);
-   
    return;
 }
 
 void
-snw_ice_play_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
-   snw_log_t *log = 0;
+snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_ice_session_t *session = 0;
+   json_object *jobj = (json_object*)data;
    uint32_t channelid = 0;
 
    if (!ice_ctx) return;
-   log = ice_ctx->log;
 
    session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
    if (!session) return;
    SET_FLAG(session,ICE_SUBSCRIBER);
 
-   try {
-      channelid = root["channelid"].asUInt();
-   } catch (...) {
-      ERROR(log, "json format error");
-   }
+   channelid = snw_ice_msg_get_int(jobj,"channelid");
+   if (channelid == (uint32_t)-1) return;
+
    snw_channel_add_subscriber(ice_ctx, channelid, flowid);
    session->live_channelid = channelid;
   
@@ -1759,74 +1718,19 @@ snw_ice_play_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid)
 }
 
 void
-snw_ice_fir_msg(snw_ice_context_t *ice_ctx, Json::Value &root, uint32_t flowid) {
-   //snw_log_t *log = 0;
-   //log = ice_ctx->log;
-   //FIXME fir msg
+snw_ice_auth_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    return;
 }
 
 void
-snw_ice_process_msg(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
-   snw_log_t *log = ice_ctx->log;
-   Json::Value root;
-   Json::Reader reader;
-   Json::FastWriter writer;
-   std::string output;
-   uint32_t msgtype = 0, api = 0;
-   int ret;
-
-   ret = reader.parse(data,data+len,root,0);
-   if (!ret) {
-      ERROR(log,"error json format, s=%s",data);
-      return;
-   }
-
-   DEBUG(log, "get ice msg, flowid=%u, data=%s", flowid, data);
-   try {
-      msgtype = root["msgtype"].asUInt();
-      if (msgtype != SNW_ICE) {
-         ERROR(log, "wrong msg, msgtype=%u data=%s", msgtype, data);
-         return;
-      }
-      api = root["api"].asUInt();
-   } catch (...) {
-      ERROR(log, "json format error, data=%s", data);
-      return;
-   }
-
-   switch(api) {
-      case SNW_ICE_CREATE:
-         snw_ice_create_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_CONNECT:
-         snw_ice_connect_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_STOP:
-         snw_ice_stop_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_SDP:
-         snw_ice_sdp_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_CANDIDATE:
-         snw_ice_candidate_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_PUBLISH:
-         snw_ice_publish_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_PLAY:
-         snw_ice_play_msg(ice_ctx,root,flowid);
-         break;
-      case SNW_ICE_FIR:
-         snw_ice_fir_msg(ice_ctx,root,flowid);
-         break;
-
-      default:
-         ERROR(log, "unknown api, api=%u", api);
-         break;
-   }
-
+snw_ice_control_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    return;
 }
+
+void
+snw_ice_fir_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
+   return;
+}
+
 
 

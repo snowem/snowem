@@ -60,7 +60,7 @@ snw_ice_sdp_get_parser(snw_ice_context_t *ctx, const char *sdp) {
 }
 
 int
-snw_ice_get_sdp_attr(snw_ice_context_t *ice_ctx, char *sdp, ice_sdp_attr_t *sdp_attr) {
+snw_ice_get_sdp_attr(snw_ice_context_t *ice_ctx, const char *sdp, ice_sdp_attr_t *sdp_attr) {
    snw_log_t *log = ice_ctx->log;
    sdp_parser_t *parser;
    sdp_session_t *parsed_sdp = NULL;
@@ -796,7 +796,7 @@ snw_ice_sdp_get_candidate(snw_ice_session_t *session, snw_ice_stream_t *stream, 
 }
 
 int 
-snw_ice_sdp_handle_answer(snw_ice_session_t *session, char *sdp) {
+snw_ice_sdp_handle_answer(snw_ice_session_t *session, const char *sdp) {
    snw_log_t *log = 0;
    snw_ice_stream_t *stream = NULL;
    sdp_session_t *remote_sdp = NULL;
