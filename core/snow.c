@@ -403,8 +403,6 @@ snw_core_channel_remove_subscriber(snw_context_t *ctx,
   return;
 }
 
-
-
 int
 snw_sig_publish_msg(snw_context_t *ctx, snw_connection_t *conn,
     Json::Value &root) {
