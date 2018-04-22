@@ -8,6 +8,7 @@ include(CheckTypeSize)
 
 add_subdirectory(cice EXCLUDE_FROM_ALL)
 add_subdirectory(wslay EXCLUDE_FROM_ALL)
+add_subdirectory(json-c EXCLUDE_FROM_ALL)
 #add_subdirectory(rtmp EXCLUDE_FROM_ALL)
 
 SET(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
@@ -145,6 +146,7 @@ endif ()
 target_link_libraries(snowem PUBLIC
   cice_static
   wslay
+  json-c
   #rtmp
   ${DL_LIBRARIES}
   ${OPENSSL_LIBRARIES}
