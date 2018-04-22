@@ -44,13 +44,13 @@ void
 snw_ice_sdp_deinit(void);
 
 int
-snw_ice_get_sdp_attr(snw_ice_context_t *ctx, char *sdp, ice_sdp_attr_t *sdp_attr);
+snw_ice_get_sdp_attr(snw_ice_context_t *ctx, const char *sdp, ice_sdp_attr_t *sdp_attr);
 
 sdp_parser_t*
 snw_ice_sdp_get_parser(snw_ice_context_t *ctx, const char *sdp);
 
 int 
-snw_ice_sdp_handle_answer(snw_ice_session_t *session, char *sdp);
+snw_ice_sdp_handle_answer(snw_ice_session_t *session, const char *sdp);
 
 char*
 snw_ice_sdp_create(snw_ice_session_t *session);
