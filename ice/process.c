@@ -21,14 +21,13 @@
 
 #include "core/module.h"
 #include "core/mq.h"
+#include "core/msg.h"
 #include "core/log.h"
 #include "core/utils.h"
 #include "ice/ice_channel.h"
 #include "ice/ice_session.h"
-#include "ice/msg.h"
 #include "ice/process.h"
 #include "json-c/json.h"
-#include "msg.h"
 #include "sdp.h"
 #include "rtp/rtcp.h"
 
@@ -58,7 +57,7 @@ void ice_send_candidate(snw_ice_session_t *session,
    }
    json_object_object_add(candobj, "candidate", json_object_new_string(buffer));
    json_object_object_add(jobj, "candidate", candobj);
-   str = snw_ice_msg_to_string(jobj);
+   str = snw_json_msg_to_string(jobj);
    if (!str) return;
 
    DEBUG(log, "sending candidate, candidate=%s", str);
@@ -188,7 +187,7 @@ snw_ice_send_msg_to_core(snw_ice_context_t *ice_ctx, json_object *jobj,
    const char *str;
 
    json_object_object_add(jobj,"rc",json_object_new_int(rc));
-   str = snw_ice_msg_to_string(jobj);
+   str = snw_json_msg_to_string(jobj);
    if (!str) return;
    snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,str,strlen(str),flowid);
 
@@ -282,7 +281,7 @@ snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *us
       json_object_object_add(sdpobj, "type", json_object_new_string("offer"));
       json_object_object_add(sdpobj, "sdp", json_object_new_string(session->local_sdp));
       json_object_object_add(jobj, "sdp", sdpobj);
-      str = snw_ice_msg_to_string(jobj);
+      str = snw_json_msg_to_string(jobj);
       if (!str) return;
 
       //send sdp into to client.
@@ -1111,8 +1110,8 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    
    if (!jobj) return;
 
-   channelid = snw_ice_msg_get_int(jobj,"channelid");
-   peer_type = snw_ice_msg_get_string(jobj,"peer_type");
+   channelid = snw_json_msg_get_int(jobj,"channelid");
+   peer_type = snw_json_msg_get_string(jobj,"peer_type");
    if (channelid == (uint32_t)-1 || peer_type == 0)
      return;
  
@@ -1454,9 +1453,9 @@ snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid
       return;
    }
 
-   jsepobj = snw_ice_msg_get_object(jobj,"sdp");
+   jsepobj = snw_json_msg_get_object(jobj,"sdp");
    if (!jsepobj) goto error;
-   jsep_type = snw_ice_msg_get_string(jsepobj,"type");
+   jsep_type = snw_json_msg_get_string(jsepobj,"type");
    if (!jsep_type) goto error;
 
    if (!strcasecmp(jsep_type, "answer")) {
@@ -1469,7 +1468,7 @@ snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid
       goto error;
    }
 
-   jsep_sdp = snw_ice_msg_get_string(jsepobj,"sdp");
+   jsep_sdp = snw_json_msg_get_string(jsepobj,"sdp");
    if (!jsep_sdp) goto error;
 
    TRACE(log, "Remote SDP, trickle=%u, s=%s", sdp_attr.trickle, jsep_sdp);
@@ -1598,16 +1597,16 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, json_object *candidate
    if (!session) return -1;
    log = session->ice_ctx->log;
 
-   done = snw_ice_msg_get_int(candidate,"done");
+   done = snw_json_msg_get_int(candidate,"done");
    if (done != -1) {
       DEBUG(log, "gathering remote candidates is done");
       SET_FLAG(session, WEBRTC_GATHER_DONE);
       return 0;
    }
 
-   mid = snw_ice_msg_get_string(candidate,"id");
-   mline = snw_ice_msg_get_int(candidate,"label");
-   rc = snw_ice_msg_get_string(candidate,"candidate");
+   mid = snw_json_msg_get_string(candidate,"id");
+   mline = snw_json_msg_get_int(candidate,"label");
+   rc = snw_json_msg_get_string(candidate,"candidate");
    if (!mid || mline == -1 || !rc)
      return -1;
 
@@ -1644,7 +1643,7 @@ snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t 
       return;
    }
 
-   cand_obj = snw_ice_msg_get_object(jobj,"candidate");
+   cand_obj = snw_json_msg_get_object(jobj,"candidate");
    if (!cand_obj) return;
 
    DEBUG(log,"candidate info: %s",
@@ -1679,7 +1678,7 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
    if (!session) return;
 
-   channelid = snw_ice_msg_get_int(jobj,"channelid");
+   channelid = snw_json_msg_get_int(jobj,"channelid");
    if (channelid == (uint32_t)-1) return;
 
    DEBUG(log, "channel is publishing, flowid=%u, channelid=%u", 
@@ -1708,7 +1707,7 @@ snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowi
    if (!session) return;
    SET_FLAG(session,ICE_SUBSCRIBER);
 
-   channelid = snw_ice_msg_get_int(jobj,"channelid");
+   channelid = snw_json_msg_get_int(jobj,"channelid");
    if (channelid == (uint32_t)-1) return;
 
    snw_channel_add_subscriber(ice_ctx, channelid, flowid);
