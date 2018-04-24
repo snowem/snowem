@@ -15,15 +15,15 @@
  *
  */
 
-#include "ice/msg.h"
+#include "core/msg.h"
 
 const char*
-snw_ice_msg_to_string(json_object *jobj) {
+snw_json_msg_to_string(json_object *jobj) {
    return json_object_to_json_string_ext(jobj, JSON_C_TO_STRING_PLAIN);
 }
 
 int
-snw_ice_msg_get_int(json_object *jobj, const char *key) {
+snw_json_msg_get_int(json_object *jobj, const char *key) {
   int ret = -1;
   json_object *vobj = 0;
 
@@ -36,7 +36,7 @@ snw_ice_msg_get_int(json_object *jobj, const char *key) {
 }
 
 const char*
-snw_ice_msg_get_string(json_object *jobj, const char *key) {
+snw_json_msg_get_string(json_object *jobj, const char *key) {
   const char* ret = 0;
   json_object *vobj = 0;
 
@@ -49,7 +49,7 @@ snw_ice_msg_get_string(json_object *jobj, const char *key) {
 }
 
 json_object*
-snw_ice_msg_get_object(json_object *jobj, const char *key) {
+snw_json_msg_get_object(json_object *jobj, const char *key) {
   json_object *vobj = 0;
 
   json_object_object_get_ex(jobj,key,&vobj);

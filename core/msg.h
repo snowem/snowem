@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef _SNOW_ICE_MSG_H_
-#define _SNOW_ICE_MSG_H_
+#ifndef _SNOW_CORE_JSON_MSG_H_
+#define _SNOW_CORE_JSON_MSG_H_
 
 #include "json-c/json.h"
 
@@ -25,19 +25,19 @@ extern "C" {
 #endif
 
 const char*
-snw_ice_msg_to_string(json_object *jobj);
+snw_json_msg_to_string(json_object *jobj);
 
 int
-snw_ice_msg_get_int(json_object *jobj, const char *key);
+snw_json_msg_get_int(json_object *jobj, const char *key);
 
 const char*
-snw_ice_msg_get_string(json_object *jobj, const char *key);
+snw_json_msg_get_string(json_object *jobj, const char *key);
 
 json_object*
-snw_ice_msg_get_object(json_object *jobj, const char *key);
+snw_json_msg_get_object(json_object *jobj, const char *key);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //_SNOW_ICE_MSG_H_
+#endif //_SNOW_CORE_JSON_MSG_H_
