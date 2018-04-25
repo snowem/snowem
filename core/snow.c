@@ -28,7 +28,7 @@
 #include "core/log.h"
 #include "core/module.h"
 #include "core/msg.h"
-#include "jsonc/json.h"
+#include "json-c/json.h"
 #include "core/peer.h"
 #include "core/roominfo.h"
 #include "core/snow.h"

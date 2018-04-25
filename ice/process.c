@@ -27,7 +27,7 @@
 #include "ice/ice_channel.h"
 #include "ice/ice_session.h"
 #include "ice/process.h"
-#include "jsonc/json.h"
+#include "json-c/json.h"
 #include "sdp.h"
 #include "rtp/rtcp.h"
 
