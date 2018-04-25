@@ -18,7 +18,7 @@
 #ifndef _SNOW_CORE_JSON_MSG_H_
 #define _SNOW_CORE_JSON_MSG_H_
 
-#include "jsonc/json.h"
+#include "json-c/json.h"
 
 #ifdef __cplusplus
 extern "C" {
