@@ -20,8 +20,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <json/json.h>
-
 #include "core/channel.h"
 #include "core/conf.h"
 #include "core/connection.h"
@@ -30,7 +28,7 @@
 #include "core/log.h"
 #include "core/module.h"
 #include "core/msg.h"
-#include "json-c/json.h"
+#include "jsonc/json.h"
 #include "core/peer.h"
 #include "core/roominfo.h"
 #include "core/snow.h"
@@ -359,9 +357,8 @@ snw_sig_broadcast_new_subchannel(snw_context_t *ctx,
     uint32_t channelid, uint32_t subchannelid, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   snw_channel_t *channel = 0;
-  Json::Value req;
-  Json::FastWriter writer;
-  std::string output;
+  json_object *jobj = 0;
+  const char *str = 0;
 
   channel = snw_channel_search(ctx->channel_cache,channelid);
   if (!channel) {
@@ -369,19 +366,20 @@ snw_sig_broadcast_new_subchannel(snw_context_t *ctx,
     return;
   }
 
-  req["msgtype"] = SNW_EVENT;
-  req["api"] = SNW_EVENT_ADD_SUBCHANNEL;
-  req["peerid"] = flowid;
-  req["channelid"] = channelid;
-  req["subchannelid"] = subchannelid;
-  output = writer.write(req);
+  jobj = json_object_new_object();
+  if (!jobj) return;
+  json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_EVENT));
+  json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_ADD_SUBCHANNEL));
+  json_object_object_add(jobj,"peerid",json_object_new_int(flowid));
+  json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
+  json_object_object_add(jobj,"subchannelid",json_object_new_int(subchannelid));
+  str = snw_json_msg_to_string(jobj);
   DEBUG(log, "send event of new subchannel to peer,"
       " scid=%u, flowid=%u, s=%s", 
-      subchannelid, flowid, output.c_str());
+      subchannelid, flowid, str);
 
   for (int i=0; i<channel->idx; i++) {
-    snw_shmmq_enqueue(ctx->net_task->req_mq,0,output.c_str(),
-      output.size(),channel->peers[i]);
+    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str, strlen(str),channel->peers[i]);
   }
 
   return;
@@ -656,24 +654,24 @@ snw_core_connect(snw_context_t *ctx, snw_connection_t *conn) {
 int
 snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
    snw_log_t *log = ctx->log;
-   Json::Value root;
-   Json::FastWriter writer;
-   std::string output;
+   json_object *jobj = 0;
+   const char *str = 0;
    uint32_t peerid;
    snw_peer_t *peer = 0;
    uint32_t channelid = 0;
    snw_channel_t *channel = 0;
    snw_channel_t *pchannel = 0;
 
-   try {
-     root["msgtype"] = SNW_ICE;
-     root["api"] = SNW_ICE_STOP;
-     root["id"] = conn->flowid;
-     output = writer.write(root);
-     snw_shmmq_enqueue(ctx->ice_task->req_mq,0,output.c_str(),output.size(),conn->flowid);
-   } catch(...) {
-     ERROR(log,"failed to send req to ice");
+   jobj = json_object_new_object();
+   if (!jobj) return -1;
+   json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
+   json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_STOP));
+   json_object_object_add(jobj,"id",json_object_new_int(conn->flowid));
+   str = snw_json_msg_to_string(jobj);
+   if (str) {
+     snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),conn->flowid);
    }
+   json_object_put(jobj);
 
    peerid = GET_FLOW2PEER(conn->flowid);
    peer = snw_peer_search(ctx->peer_cache, peerid);
@@ -698,23 +696,27 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
 
    if (channel->type == SNW_BCST_CHANNEL_TYPE) {
      // send event to subscriber
-     Json::Value req;
-     Json::FastWriter writer;
-     std::string output;
+     json_object *req = json_object_new_object();
+     
+     if (!req) return -1;
 
-     req["msgtype"] = SNW_EVENT;
-     req["api"] = SNW_EVENT_DEL_SUBCHANNEL;
-     req["peerid"] = conn->flowid;
-     req["channelid"] = channel->parentid;
-     req["subchannelid"] = channel->id;
-     output = writer.write(req);
+     json_object_object_add(req,"msgtype",json_object_new_int(SNW_EVENT));
+     json_object_object_add(req,"api",json_object_new_int(SNW_EVENT_DEL_SUBCHANNEL));
+     json_object_object_add(req,"peerid",json_object_new_int(conn->flowid));
+     json_object_object_add(req,"channelid",json_object_new_int(channel->parentid));
+     json_object_object_add(req,"subchannelid",json_object_new_int(channel->id));
+     str = snw_json_msg_to_string(req);
+     if (!str) {
+       json_object_put(req);
+       return -1;
+     }
      DEBUG(log, "send event of new subchannel to peer,"
-        " scid=%u, flowid=%u, s=%s", channel->id, conn->flowid, output.c_str());
+        " scid=%u, flowid=%u, s=%s", channel->id, conn->flowid, str);
 
      for (int i=0; i<channel->idx; i++) {
-       snw_shmmq_enqueue(ctx->net_task->req_mq,0,output.c_str(),
-         output.size(),channel->peers[i]);
+       snw_shmmq_enqueue(ctx->net_task->req_mq,0,str, strlen(str),channel->peers[i]);
      }
+     json_object_put(req);
      
      //update subchannel list of parent
      pchannel = snw_channel_search(ctx->channel_cache, channel->parentid);
@@ -791,90 +793,89 @@ snw_process_msg_from_ice(snw_context_t *ctx, char *buffer, uint32_t len, uint32_
 int
 snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t flowid) {
    snw_log_t *log = ctx->log;
-   Json::Value root;
-   Json::Reader reader;
-   Json::FastWriter writer;
+   json_object *jobj = 0;
+   const char *str = 0;
+   const char *roomname = 0;
+   const char *type_str = 0;
    snw_roominfo_t *room = 0;
    snw_channel_t *channel = 0;
    uint32_t msgtype = 0;
    uint32_t api = 0;
-   std::string roomname;
-   std::string output;
    uint32_t channelid;
-   std::string type_str;
    uint32_t channel_type;
    int is_new = 0;
-   int ret;
+   int ret = -1;
 
-   ret = reader.parse(data,data+len,root,0);
-   if (!ret) {
-      ERROR(log,"error json format, data=%s",data);
+   jobj = json_tokener_parse(data);
+   if (!jobj) {
+      ERROR(log,"error json format, s=%s",data);
       return -1;
    }
 
-   try {
-      msgtype = root["msgtype"].asUInt();
-      api = root["api"].asUInt();
-      roomname = root["name"].asString();
-      type_str = root["type"].asString();
-      
-   } catch (...) {
-      ERROR(log, "json format error, data=%s", data);
-      return -1;
+   DEBUG(log,"http handler parsed json: %s",
+         json_object_to_json_string_ext(
+           jobj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
+
+   msgtype = snw_json_msg_get_int(jobj,"msgtype");
+   api = snw_json_msg_get_int(jobj,"api");
+   roomname = snw_json_msg_get_string(jobj,"name");
+   type_str = snw_json_msg_get_string(jobj,"type");
+   if (msgtype == (uint32_t)-1 || api == (uint32_t)-1
+       || !roomname || !type_str) {
+     goto error;
    }
 
    if (msgtype != SNW_CHANNEL ||  api != SNW_CHANNEL_CREATE)
-     return -2;
+     goto error;
 
-   if (!strncmp(type_str.c_str(),"broadcast",9)) {
+   if (!strncmp(type_str,"broadcast",9)) {
      channel_type = SNW_BCST_CHANNEL_TYPE;
    } else 
-   if (!strncmp(type_str.c_str(),"call",4)) {
+   if (!strncmp(type_str,"call",4)) {
      channel_type = SNW_CALL_CHANNEL_TYPE;
    } else 
-   if (!strncmp(type_str.c_str(),"conference",10)) {
+   if (!strncmp(type_str,"conference",10)) {
      channel_type = SNW_CONF_CHANNEL_TYPE;
    } else {
-     ERROR(log, "unknow channel type: %s", type_str.c_str());
-     return -2;
+     ERROR(log, "unknow channel type: %s", type_str);
+     goto error;
    }
 
    //handle create channel
-   DEBUG(log,"create channel with name, name=%s",roomname.c_str());
-   if (roomname.size() == 0)
-     return -3;
+   DEBUG(log,"create channel with name, name=%s",roomname);
    room = snw_roominfo_get(ctx->roominfo_cache,
-     roomname.c_str(),roomname.size(),&is_new);
+     roomname,strlen(roomname),&is_new);
    if (!room) {
-     ERROR(log,"failed to get room name, s=%s",roomname.c_str());
+     ERROR(log,"failed to get room name, s=%s",roomname);
      return -4;
    }
-   DEBUG(log,"create channelid, is_new=%u, name=%s", is_new, roomname.c_str());
-   if (!is_new) goto done;
-
-   channelid = snw_set_getid(ctx->channel_mgr);
-   if (channelid == 0) {
-     snw_roominfo_remove(ctx->roominfo_cache, room);
-     return -5;
+   DEBUG(log,"create channelid, is_new=%u, name=%s", is_new, roomname);
+   if (is_new) {
+     channelid = snw_set_getid(ctx->channel_mgr);
+     if (channelid == 0) {
+       snw_roominfo_remove(ctx->roominfo_cache, room);
+       return -5;
+     }
+     channel = snw_channel_get(ctx->channel_cache,channelid,&is_new);
+     if (!channel) {
+       snw_roominfo_remove(ctx->roominfo_cache, room);
+       return -6;
+     }
+     memcpy(channel->name,room->name,ROOM_NAME_LEN);
+     channel->type = channel_type;
+     room->channelid = channelid;
    }
-   channel = snw_channel_get(ctx->channel_cache,channelid,&is_new);
-   if (!channel) {
-     snw_roominfo_remove(ctx->roominfo_cache, room);
-     return -6;
-   }
-   memcpy(channel->name,room->name,ROOM_NAME_LEN);
-   channel->type = channel_type;
-   room->channelid = channelid;
 
+   json_object_object_add(jobj,"channelid",json_object_new_int(room->channelid));
+   json_object_object_add(jobj,"rc",json_object_new_int(0));
+   str = snw_json_msg_to_string(jobj);
+   if (!str) goto error;
+   snw_shmmq_enqueue(ctx->http_task->req_mq, 0, str, strlen(str), flowid);
+   ret = 0;
 
-done:
-   root["channelid"] = room->channelid;
-   root["rc"] = 0;
-   output = writer.write(root);
-   snw_shmmq_enqueue(ctx->http_task->req_mq, 0, 
-   output.c_str(), output.size(), flowid);
- 
-   return 0;
+error:
+   json_object_put(jobj);
+   return ret;
 }
 
 void

@@ -65,10 +65,9 @@ include_directories( ${CMAKE_BINARY_DIR}/generated/ )
 
 
 ## file globbing ##############################################################
-file(GLOB sources 
-       core/*.c core/*.cpp core/*.h 
-       ice/*.c ice/*.h 
-       jsoncpp/*.cpp jsoncpp/json/*.h
+file(GLOB sources
+       core/*.c core/*.cpp core/*.h
+       ice/*.c ice/*.h
        websocket/*.c websocket/*.h
        rtp/*.c rtp/*.h
        )
@@ -79,7 +78,7 @@ SET_SOURCE_FILES_PROPERTIES(${c_source} PROPERTIES LANGUAGE CXX)
 add_executable(snowem ${sources})
 
 target_compile_options(snowem PUBLIC -g -Wall)
-target_include_directories(snowem PUBLIC . jsoncpp)
+target_include_directories(snowem PUBLIC .)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindDL.cmake)
 if (${DL_FOUND})
