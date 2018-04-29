@@ -15,6 +15,7 @@
  *
  */
 
+#include <bsd/bsd.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -326,6 +327,8 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
   snw_http_context_t *http_ctx = 0;
   snw_flowset_t *flowset = 0;
   struct event *q_event;
+
+  setproctitle("\\_ http");
 
   if (ctx == 0)
     return;

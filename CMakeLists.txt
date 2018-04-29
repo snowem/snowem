@@ -142,6 +142,15 @@ else ()
    MESSAGE(FATAL_ERROR LIBCONFIG not found)
 endif ()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindBSD.cmake)
+if (${BSD_FOUND})
+   target_include_directories(snowem PUBLIC ${BSD_INCLUDE_DIRS})
+   MESSAGE(STATUS "libbsd include: ${BSD_INCLUDE_DIRS}")
+   MESSAGE(STATUS "libbsd lib: ${BSD_LIBRARIES}")
+else ()
+   MESSAGE(FATAL_ERROR LIBBSD not found)
+endif ()
+
 target_link_libraries(snowem PUBLIC
   cice_static
   wslay
@@ -155,6 +164,7 @@ target_link_libraries(snowem PUBLIC
   ${SRTP_LIBRARIES}
   ${NETTLE_LIBRARIES}
   ${CONFIG_LIBRARIES}
+  ${BSD_LIBRARIES}
 )
 
 ## packaging ##################################################################
