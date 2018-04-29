@@ -343,7 +343,6 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
     exit(-2);
   }
 
-  //snw_http_init_shmqueue(ctx);
   snw_http_init_log(http_ctx);
   snw_http_init_ssl(http_ctx);
 
@@ -362,7 +361,7 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
   http_ctx->httpd = evhttp_new(http_ctx->ev_base);
   if (!http_ctx->httpd) exit(-3);
 
-  //FIXME: ipaddress
+  //TODO: replace "0.0.0.0" with ip address from config
   if (evhttp_bind_socket(http_ctx->httpd, "0.0.0.0", 8868) != 0)
     exit(-4);
 
