@@ -16,6 +16,7 @@
  */
 
 #include <assert.h>
+#include <bsd/bsd.h>
 
 #include "core/core.h"
 #include "core/log.h"
@@ -245,6 +246,8 @@ snw_net_task_cb(snw_task_ctx_t *task_ctx, void *data) {
    struct evwsconnlistener* levws = 0;
    snw_websocket_context_t *ws_ctx = 0;
    snw_flowset_t *flowset = 0;
+
+   setproctitle("\\_ websocket");
 
    if (ctx == 0) return;
 

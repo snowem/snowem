@@ -15,6 +15,7 @@
  *
  */
 
+#include <bsd/bsd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -1054,11 +1055,24 @@ snw_core_http_cb(snw_task_ctx_t *task_ctx, void *data) {
   event_add(q_event, NULL);
 }
 
+void
+print_help() {
+
+   printf("usage: snowem <path-to-config_file>\n");
+
+   return;
+}
+
 int
-main(int argc, char** argv) {
+main(int argc, char** argv, char **envp) {
    snw_context_t *ctx;
 
-   //TODO: get arguments from cmd line.
+   if (argc < 2) {
+     print_help();
+     exit(0);
+   }
+
+   setproctitle_init(argc,argv,envp);
 
    srand(time(NULL));
    ctx = snw_create_context();
@@ -1079,6 +1093,8 @@ main(int argc, char** argv) {
 
    snw_task_setup(ctx,CORE2HTTP_KEY,HTTP2CORE_KEY,SHAREDMEM_SIZE,
        snw_core_http_cb, snw_http_task_cb);
+
+   setproctitle("master sig %s %s", argv[0], argv[1]);
 
    snw_main_process(ctx);
 

@@ -16,6 +16,7 @@
  */
 
 #include <stdio.h>
+#include <bsd/bsd.h>
 
 #include "core/core.h"
 #include "core/log.h"
@@ -306,6 +307,8 @@ snw_ice_init_ssl(snw_context_t *ctx) {
 void
 snw_ice_task_cb(snw_task_ctx_t *task_ctx, void *data) {
    snw_context_t *ctx = (snw_context_t *)data;
+
+   setproctitle("\\_ ice");
 
    if (ctx == 0)
       return;
