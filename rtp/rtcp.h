@@ -25,8 +25,6 @@
 #include <endian.h>
 #endif
 #include <inttypes.h>
-#include <string.h>
-#include <vector>
 
 #include "rtp/rtp.h"
 
@@ -182,7 +180,7 @@ void
 print_rtcp_header(snw_log_t *log, char *buf, int buflen, const char *msg);
 
 int
-snw_rtcp_has_payload_type(char *buf, int len, int type);
+snw_rtcp_has_payload_type(char *buf, int len, int8_t type);
 
 //TODO: move to rtp_utils.c/h?
 uint32_t

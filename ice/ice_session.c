@@ -24,26 +24,26 @@
 #include "ice_types.h"
 #include "sdp.h"
 
-inline int
+int
 ice_session_key(const void *item) {  
    snw_ice_session_t *so =  (snw_ice_session_t *)item;
    return so->flowid;
 }
 
-inline int
+int
 ice_session_eq(const void *arg1, const void *arg2) {  
    snw_ice_session_t *item1 = (snw_ice_session_t *)arg1;
    snw_ice_session_t *item2 = (snw_ice_session_t *)arg2;
    return (item1->flowid == item2->flowid);
 }
 
-inline int
+int
 ice_session_isempty(const void *arg) {
    snw_ice_session_t *item = (snw_ice_session_t *)arg;
    return (item->flowid == 0);
 }
 
-inline int            
+int            
 ice_session_setempty(const void *arg) {
    snw_ice_session_t *item = (snw_ice_session_t *)arg;
    item->flowid = 0;

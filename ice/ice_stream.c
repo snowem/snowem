@@ -88,14 +88,14 @@ snw_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item) {
 }
 
 void
-snw_stream_free(snw_ice_stream_t *streams, snw_ice_stream_t *stream) {
+snw_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream) {
 
    return;
 }
 
 
 void
-snw_stream_print_ssrc(snw_ice_context *ctx, snw_ice_stream_t *s, const char *info) {
+snw_stream_print_ssrc(snw_ice_context_t *ctx, snw_ice_stream_t *s, const char *info) {
    snw_log_t *log = 0;
 
    if (!ctx || !s) return;

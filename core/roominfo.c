@@ -33,13 +33,13 @@ roominfo_hash(char *str, int len) {
    return hash;
 }
 
-inline int
+int
 roominfo_key(const void *item) {  
    snw_roominfo_t *so =  (snw_roominfo_t *)item;
    return so->id;
 }
 
-inline int
+int
 roominfo_eq(const void *arg1, const void *arg2) {  
    snw_roominfo_t *item1 = (snw_roominfo_t *)arg1;
    snw_roominfo_t *item2 = (snw_roominfo_t *)arg2;
@@ -47,13 +47,13 @@ roominfo_eq(const void *arg1, const void *arg2) {
    return !strncmp(item1->name,item2->name,ROOM_NAME_LEN);
 }
 
-inline int
+int
 roominfo_isempty(const void *arg) {
    snw_roominfo_t *item = (snw_roominfo_t *)arg;
    return !strncmp(item->name,g_empty_roominfo,ROOM_NAME_LEN);
 }
 
-inline int            
+int            
 roominfo_setempty(const void *arg)
 {
    snw_roominfo_t *item = (snw_roominfo_t *)arg;

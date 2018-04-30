@@ -21,14 +21,14 @@
 #include "log.h"
 #include "peer.h"
 
-inline int
+int
 peer_key(const void *item)
 {  
    snw_peer_t *so =  (snw_peer_t *)item;
    return so->peerid;
 }
 
-inline int
+int
 peer_eq(const void *arg1, const void *arg2)
 {  
    snw_peer_t *item1 = (snw_peer_t *)arg1;
@@ -36,14 +36,14 @@ peer_eq(const void *arg1, const void *arg2)
    return (item1->peerid == item2->peerid);
 }
 
-inline int
+int
 peer_isempty(const void *arg)
 {
    snw_peer_t *item = (snw_peer_t *)arg;
    return (item->peerid == 0);
 }
 
-inline int            
+int            
 peer_setempty(const void *arg)
 {
    snw_peer_t *item = (snw_peer_t *)arg;
