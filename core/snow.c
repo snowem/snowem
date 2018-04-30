@@ -832,13 +832,13 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
     return -4;
   }
 
-  DEBUG(log,"create channelid, is_new=%u, name=%s", is_new, roomname);
   if (is_new) {
     channelid = snw_set_getid(ctx->channel_mgr);
     if (channelid == 0) {
       snw_roominfo_remove(ctx->roominfo_cache, room);
       return -5;
     }
+    is_new = 0;
     channel = snw_channel_get(ctx->channel_cache,channelid,&is_new);
     if (!channel) {
       snw_roominfo_remove(ctx->roominfo_cache, room);
@@ -847,11 +847,17 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
     memcpy(channel->name,room->name,ROOM_NAME_LEN);
     channel->type = channel_type;
     room->channelid = channelid;
+    DEBUG(log,"create channelid, is_new=%u, name=%s", is_new, roomname);
+    json_object_object_add(jobj,"channelid",json_object_new_int(room->channelid));
+    json_object_object_add(jobj,"rc",json_object_new_int(0));
+    str = snw_json_msg_to_string(jobj);
+  } else {
+    WARN(log,"room exists, is_new=%u, name=%s", is_new, roomname);
+    json_object_object_add(jobj,"channelid",json_object_new_int(room->channelid));
+    json_object_object_add(jobj,"rc",json_object_new_int(0));
+    str = snw_json_msg_to_string(jobj);
   }
 
-  json_object_object_add(jobj,"channelid",json_object_new_int(room->channelid));
-  json_object_object_add(jobj,"rc",json_object_new_int(0));
-  str = snw_json_msg_to_string(jobj);
   if (!str) goto error;
   snw_shmmq_enqueue(ctx->http_task->req_mq, 0, str, strlen(str), flowid);
   ret = 0;
@@ -865,6 +871,7 @@ snw_process_http_delete_req(snw_context_t *ctx, void *data, uint32_t len, uint32
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
   snw_channel_t *channel = 0;
+  snw_roominfo_t *room = 0;
   char buff[64] = {0};
   const char *str = 0;
   uint32_t channelid = 0;
@@ -882,6 +889,15 @@ snw_process_http_delete_req(snw_context_t *ctx, void *data, uint32_t len, uint32
   }
 
   //TODO: notify channel removal
+
+  room = snw_roominfo_search(ctx->roominfo_cache,
+    channel->name,strlen(channel->name));
+  if (!room) {
+    WARN(log,"failed to get room name, s=%s",channel->name);
+  } else {
+    snw_roominfo_remove(ctx->roominfo_cache, room);
+  }
+
   DEBUG(log,"remove channel, channelid=%u",channelid);
   snw_channel_remove(ctx->channel_cache,channel);
 
@@ -901,35 +917,53 @@ snw_process_http_query_req(snw_context_t *ctx, void *data, uint32_t len, uint32_
   const char *str = 0;
   const char *roomname = 0;
   uint32_t channelid = 0;
+  int roomlen = 0;
 
   roomname = snw_json_msg_get_string(jobj,"name");
   channelid = snw_json_msg_get_int(jobj,"channelid");
 
+  DEBUG(log,"query room, channelid=%d, name=%s",channelid, roomname);
+
   if (channelid != (uint32_t)-1) {
     char buff[64] = {0};
+    DEBUG(log,"search channel, channelid=%u, name=%s",channelid, roomname);
     channel = snw_channel_search(ctx->channel_cache,channelid);
     if (!channel) {
+      DEBUG(log,"not found channel, channelid=%u, name=%s",channelid, roomname);
       snprintf(buff,64,"channel not found, channelid=%u", channelid);
       json_object_object_add(jobj,"errmsg",json_object_new_string(buff));
       json_object_object_add(jobj,"rc",json_object_new_int(-1));
       str = snw_json_msg_to_string(jobj);
-    } else if (!strncmp(channel->name,roomname,ROOM_NAME_LEN)) {
-      //id and name match
-      json_object_object_add(jobj,"rc",json_object_new_int(0));
-      str = snw_json_msg_to_string(jobj);
+    } else if (roomname) {
+      roomlen = strlen(roomname) > ROOM_NAME_LEN ? ROOM_NAME_LEN : strlen(roomname);
+      if (!strncmp(channel->name,roomname,roomlen)) {
+        //id and name match
+        DEBUG(log,"found channel, channelid=%u, name=%s",channelid, roomname);
+        json_object_object_add(jobj,"rc",json_object_new_int(0));
+        str = snw_json_msg_to_string(jobj);
+      } else {
+        WARN(log,"name %s does not match channel name=%s", roomname,channel->name);
+        snprintf(buff,64,"room mismatch, req_name=%s, name=%s", roomname,channel->name);
+        json_object_object_add(jobj,"errmsg",json_object_new_string(buff));
+        json_object_object_add(jobj,"rc",json_object_new_int(-1));
+        str = snw_json_msg_to_string(jobj);
+      }
     } else {
       //fill room name
-      WARN(log,"name %s does not match channel name=%s", roomname,channel->name);
-      snprintf(buff,64,"room mismatch, req_name=%s, name=%s", roomname,channel->name);
-      json_object_object_add(jobj,"errmsg",json_object_new_string(buff));
-      json_object_object_add(jobj,"rc",json_object_new_int(-1));
+      json_object_object_add(jobj,"name",json_object_new_string(channel->name));
+      json_object_object_add(jobj,"rc",json_object_new_int(0));
       str = snw_json_msg_to_string(jobj);
-    }
+   }
   } else if (roomname != 0) {
     //no channel in req
     room = snw_roominfo_search(ctx->roominfo_cache, roomname,strlen(roomname));
     json_object_object_add(jobj,"channelid",json_object_new_int(room->channelid));
     json_object_object_add(jobj,"rc",json_object_new_int(0));
+    str = snw_json_msg_to_string(jobj);
+  } else {
+    //no channel id or name available in req
+    json_object_object_add(jobj,"errmsg",json_object_new_string("channel not found"));
+    json_object_object_add(jobj,"rc",json_object_new_int(-1));
     str = snw_json_msg_to_string(jobj);
   }
 
@@ -962,7 +996,7 @@ snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t
      return -1;
    }
 
-   if (msgtype != SNW_CHANNEL ||  api != SNW_CHANNEL_CREATE) {
+   if (msgtype != SNW_CHANNEL) {
      json_object_put(jobj);
      return -1;
    }

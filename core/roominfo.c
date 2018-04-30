@@ -78,8 +78,6 @@ snw_roominfo_init() {
    return ctx;
 }
 
-
-
 snw_roominfo_t*
 snw_roominfo_get(snw_hashbase_t *ctx, const char *name, int len, int *is_new) {
    snw_roominfo_t key;
@@ -106,6 +104,7 @@ snw_roominfo_get(snw_hashbase_t *ctx, const char *name, int len, int *is_new) {
 snw_roominfo_t*
 snw_roominfo_search(snw_hashbase_t *ctx, const char *name, int len) {
    snw_roominfo_t sitem;
+   memset(&sitem,0,sizeof(sitem));
    if (len >= ROOM_NAME_LEN) return 0;
    sitem.id = roominfo_hash((char*)name,len);
    memcpy(sitem.name,name,len);
