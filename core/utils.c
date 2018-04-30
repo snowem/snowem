@@ -16,12 +16,10 @@
  */
 
 #include <arpa/inet.h>
-#include <cctype>
 #include <errno.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <time.h>
 

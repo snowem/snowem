@@ -66,7 +66,7 @@ snw_ice_stream_t*
 snw_stream_allocate(snw_ice_context_t *ctx);
 
 void
-snw_stream_deallocate(snw_ice_context *ctx, snw_ice_stream_t* p);
+snw_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p);
 
 snw_ice_stream_t* 
 snw_stream_find(ice_stream_head_t *head, uint32_t id);
@@ -78,7 +78,7 @@ void
 snw_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream);
 
 void
-snw_stream_print_ssrc(snw_ice_context *ctx, snw_ice_stream_t *s, const char *info);
+snw_stream_print_ssrc(snw_ice_context_t *ctx, snw_ice_stream_t *s, const char *info);
 
 #ifdef __cplusplus
 }

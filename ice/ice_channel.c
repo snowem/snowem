@@ -25,26 +25,26 @@
 #include "ice_types.h"
 
 
-inline int
+int
 ice_channel_key(const void *item) {  
    snw_ice_channel_t *so =  (snw_ice_channel_t *)item;
    return so->id;
 }
 
-inline int
+int
 ice_channel_eq(const void *arg1, const void *arg2) {  
    snw_ice_channel_t *item1 = (snw_ice_channel_t *)arg1;
    snw_ice_channel_t *item2 = (snw_ice_channel_t *)arg2;
    return (item1->id == item2->id);
 }
 
-inline int
+int
 ice_channel_isempty(const void *arg) {
    snw_ice_channel_t *item = (snw_ice_channel_t *)arg;
    return (item->id == 0);
 }
 
-inline int            
+int            
 ice_channel_setempty(const void *arg) {
    snw_ice_channel_t *item = (snw_ice_channel_t *)arg;
    item->id = 0;

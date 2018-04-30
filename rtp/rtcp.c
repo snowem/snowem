@@ -38,7 +38,7 @@ snw_rtcp_has_payload_type(char *buf, int len, int8_t type) {
 
 	if (rtcp->v != 2) return 0;
 
-   total = len;
+  total = len;
 	while (rtcp) {
       if (rtcp->pt == type)
          return 1;

@@ -16,13 +16,13 @@
  */
 
 #include <bsd/bsd.h>
+#include <event2/http.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <assert.h>
 #include <unistd.h>
-#include <string.h>
 
 #ifdef linux
 #include <time.h>
@@ -46,7 +46,6 @@ int
 snw_http_init_ssl(snw_http_context_t *ctx) {
    snw_context_t *main_ctx = (snw_context_t*)ctx->ctx;
    SSL_CTX  *server_ctx = NULL;
-   std::string cert_str,key_str;
 
    /* Initialize the OpenSSL library */
    SSL_load_error_strings();
@@ -217,7 +216,7 @@ void
 snw_process_http_request(struct evhttp_request *req, void *arg) {
   snw_http_context_t *ctx = (snw_http_context_t*)arg;
   snw_log_t *log = ctx->log;
-  evhttp_cmd_type type;
+  enum evhttp_cmd_type type;
 
   type = evhttp_request_get_command(req);
   DEBUG(log, "get http method, type=%u", type);

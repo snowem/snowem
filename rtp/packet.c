@@ -43,7 +43,7 @@ rtp_list_remove_last(rtp_packet_head_t* head) {
 
    if (!TAILQ_EMPTY(head)) {
       rtp_packet_t *p = 0;
-      TAILQ_LAST(head,rtp_list_head);
+      p = TAILQ_LAST(head,rtp_list_head);
       TAILQ_REMOVE(head,p,list);
       return p;
    }

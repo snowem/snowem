@@ -239,24 +239,19 @@ snw_sig_call_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
   const char *str = 0;
-  std::string peer_type;
   uint32_t peerid = 0;
    
-   try {
-      peerid = snw_json_msg_get_int(jobj,"remoteid");
+  peerid = snw_json_msg_get_int(jobj,"remoteid");
 
-      //TODO: verify peer in channel
-      //channelid = snw_json_msg_get_int(jobj,"channelid");
+  //TODO: verify peer in channel
+  //channelid = snw_json_msg_get_int(jobj,"channelid");
       
-      str = snw_json_msg_to_string(jobj);
-      if (!str) return -1;
-      //FIXME: correct me, not ice2core!!!
-      snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),peerid);
-   } catch (...) {
-      ERROR(log, "json format error");
-   }
+  str = snw_json_msg_to_string(jobj);
+  if (!str) return -1;
+  //FIXME: correct me, not ice2core!!!
+  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),peerid);
 
-   return 0;
+  return 0;
 }
 
 void

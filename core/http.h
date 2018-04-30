@@ -18,8 +18,6 @@
 #ifndef _SNOW_CORE_HTTP_H_
 #define _SNOW_CORE_HTTP_H_ 
 
-#include <string>
-
 #ifdef __cplusplus
 extern "C" {
 #endif

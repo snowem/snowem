@@ -62,8 +62,8 @@ struct vp8_xext {
 //struct vp8_header {
 //};
 
-int rtp_list_size(rtp_packet_t* head);
-void ice_rtp_is_vp8(rtp_packet_t *head, int type, char* buf, int len);
+int rtp_list_size(rtp_packet_head_t* head);
+void ice_rtp_is_vp8(rtp_packet_head_t *head, int type, char* buf, int len);
 
 #endif //_ICE_VP8_H
 

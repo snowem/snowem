@@ -11,11 +11,8 @@ add_subdirectory(wslay EXCLUDE_FROM_ALL)
 add_subdirectory(json-c EXCLUDE_FROM_ALL)
 #add_subdirectory(rtmp EXCLUDE_FROM_ALL)
 
-SET(CMAKE_C_COMPILER ${CMAKE_CXX_COMPILER})
-
-#TODO: enable flag at cmake cmd
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_RTMP")
-#SET(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -DENABLE_RTMP")
+configure_file( core/config.in.h ${CMAKE_BINARY_DIR}/generated/config.h )
+include_directories( ${CMAKE_BINARY_DIR}/generated/ )
 
 if ("${CMAKE_PREFIX_PATH}" STREQUAL "")
   set(SNOWEM_PREFIX_PATH "/var/snowem")
@@ -60,10 +57,6 @@ else ()
   add_definitions("-DGIT_COMMIT_HASH=unknown")
 endif()
 
-configure_file( core/config.in.h ${CMAKE_BINARY_DIR}/generated/config.h )
-include_directories( ${CMAKE_BINARY_DIR}/generated/ )
-
-
 ## file globbing ##############################################################
 file(GLOB sources
        core/*.c core/*.cpp core/*.h
@@ -72,12 +65,10 @@ file(GLOB sources
        rtp/*.c rtp/*.h
        )
 file(GLOB c_sources core/*.c ice/*.c websocket/*.c)
-SET_SOURCE_FILES_PROPERTIES(${c_source} PROPERTIES LANGUAGE CXX)
 
 ## target definitions #########################################################
 add_executable(snowem ${sources})
 
-target_compile_options(snowem PUBLIC -g -Wall)
 target_include_directories(snowem PUBLIC .)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindDL.cmake)
@@ -93,7 +84,7 @@ find_package(OpenSSL)
 if (${OPENSSL_FOUND})
    target_include_directories(snowem PUBLIC ${OPENSSL_INCLUDE_DIR})
 else (${OPENSSL_FOUND})
-   MESSAGE(FATAL_ERROR OpenSSL not found)
+   MESSAGE(FATAL_ERROR "OpenSSL not found")
 endif (${OPENSSL_FOUND})
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindLibEvent.cmake)
@@ -151,6 +142,16 @@ else ()
    MESSAGE(FATAL_ERROR LIBBSD not found)
 endif ()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindLibM.cmake)
+if (${LIBM_FOUND})
+   target_include_directories(snowem PUBLIC ${LIBM_INCLUDE_DIR})
+   MESSAGE(STATUS "libm include: ${LIBM_INCLUDE_DIR}")
+   MESSAGE(STATUS "libm lib: ${LIBM_LIBRARIES}")
+else ()
+   MESSAGE(FATAL_ERROR LIBM not found)
+endif ()
+
+
 target_link_libraries(snowem PUBLIC
   cice_static
   wslay
@@ -165,6 +166,7 @@ target_link_libraries(snowem PUBLIC
   ${NETTLE_LIBRARIES}
   ${CONFIG_LIBRARIES}
   ${BSD_LIBRARIES}
+  ${LIBM_LIBRARIES}
 )
 
 ## packaging ##################################################################

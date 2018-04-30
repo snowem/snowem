@@ -589,7 +589,6 @@ snw_ice_sdp_handle_candidate(snw_ice_stream_t *stream, const char *candidate) {
    if (ret >= 7) {
       component = snw_component_find(&stream->components, component_id);
       if (component == NULL) {
-         //ERROR("component not found, cid=%u, sid=%u", component_id, stream->id);
          return -3;
       } 
 

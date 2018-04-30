@@ -22,14 +22,14 @@
 #include "channel.h"
 #include "types.h"
 
-inline int
+int
 channel_key(const void *item)
 {  
    snw_channel_t *so =  (snw_channel_t *)item;
    return so->id;
 }
 
-inline int
+int
 channel_eq(const void *arg1, const void *arg2)
 {  
    snw_channel_t *item1 = (snw_channel_t *)arg1;
@@ -37,14 +37,14 @@ channel_eq(const void *arg1, const void *arg2)
    return (item1->id == item2->id);
 }
 
-inline int
+int
 channel_isempty(const void *arg)
 {
    snw_channel_t *item = (snw_channel_t *)arg;
    return (item->id == 0);
 }
 
-inline int
+int
 channel_setempty(const void *arg)
 {
    snw_channel_t *item = (snw_channel_t *)arg;
