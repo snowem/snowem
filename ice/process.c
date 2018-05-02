@@ -47,7 +47,6 @@ void ice_send_candidate(snw_ice_session_t *session,
    json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_CANDIDATE));
    json_object_object_add(jobj, "roomid", json_object_new_int(0));
    json_object_object_add(jobj, "callid", json_object_new_string("callid"));
-   json_object_object_add(jobj, "type", json_object_new_string("candidate"));
    if (video) {
      json_object_object_add(candobj, "label", json_object_new_int(1));
      json_object_object_add(candobj, "id", json_object_new_string("video"));
@@ -55,6 +54,7 @@ void ice_send_candidate(snw_ice_session_t *session,
      json_object_object_add(candobj, "label", json_object_new_int(0));
      json_object_object_add(candobj, "id", json_object_new_string("audio"));
    }
+   json_object_object_add(candobj, "type", json_object_new_string("candidate"));
    json_object_object_add(candobj, "candidate", json_object_new_string(buffer));
    json_object_object_add(jobj, "candidate", candobj);
    str = snw_json_msg_to_string(jobj);
