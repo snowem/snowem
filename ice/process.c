@@ -1597,7 +1597,7 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, json_object *candidate
    if (!session) return -1;
    log = session->ice_ctx->log;
 
-   done = snw_json_msg_get_int(candidate,"done");
+   done = snw_json_msg_get_bool(candidate,"done");
    if (done != -1) {
       DEBUG(log, "gathering remote candidates is done");
       SET_FLAG(session, WEBRTC_GATHER_DONE);

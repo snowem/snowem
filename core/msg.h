@@ -28,6 +28,9 @@ const char*
 snw_json_msg_to_string(json_object *jobj);
 
 int
+snw_json_msg_get_bool(json_object *jobj, const char *key);
+
+int
 snw_json_msg_get_int(json_object *jobj, const char *key);
 
 const char*

@@ -23,6 +23,19 @@ snw_json_msg_to_string(json_object *jobj) {
 }
 
 int
+snw_json_msg_get_bool(json_object *jobj, const char *key) {
+  int ret = -1;
+  json_object *vobj = 0;
+
+  json_object_object_get_ex(jobj,key,&vobj);
+  if (!vobj || json_object_get_type(vobj) != json_type_boolean)
+    return -1;
+  ret = json_object_get_boolean(vobj);
+
+  return ret;
+}
+
+int
 snw_json_msg_get_int(json_object *jobj, const char *key) {
   int ret = -1;
   json_object *vobj = 0;
