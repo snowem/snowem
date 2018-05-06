@@ -24,9 +24,9 @@ Notes:
  * on Ubuntu system, one may install the following packages:
 
 ```
-apt-get install libssl1.0.0 libssl-dev libevent-dev libsofia-sip-ua-dev \
-libsofia-sip-ua0 libsrtp0 libsrtp0-dev libnettle6 nettle-dev \
-libconfig9 libconfig-dev
+apt-get install libbsd-dev libbsd0 libssl1.0.0 libssl-dev libevent-dev \
+libsofia-sip-ua-dev libsofia-sip-ua0 libsrtp0 libsrtp0-dev libnettle6 \
+nettle-dev libconfig9 libconfig-dev
 ```
  
  * for installing libevent 2.1.xx, one may do the following:  
