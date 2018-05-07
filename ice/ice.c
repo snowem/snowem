@@ -130,17 +130,6 @@ ice_dtls_init(snw_ice_context_t *ctx, const char* pem, const char *key) {
    return ctx->ssl_ctx;
 }
 
-//FIXME: remove these fucntions
-void  
-test_api1(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32_t flowid) {
-   snw_log_t *log = 0;
-   if (!ice_ctx) return;
-   log = ice_ctx->log;
-   DEBUG(log, "got api 1");
-
-   return;
-}
-
 void 
 snw_ice_log_cb(int severity, const char *msg, void *data) {
    snw_ice_context_t *ice_ctx = (snw_ice_context_t *)data;
@@ -150,7 +139,6 @@ snw_ice_log_cb(int severity, const char *msg, void *data) {
    log = ice_ctx->log;
 
    snw_log_write_pure(log,SNW_ERROR,"%s",msg);
-   //DEBUG(log,"%s",msg);
    return; 
 }
 
