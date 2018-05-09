@@ -69,6 +69,7 @@ file(GLOB c_sources core/*.c ice/*.c websocket/*.c)
 ## target definitions #########################################################
 add_executable(snowem ${sources})
 
+target_compile_options(snowem PUBLIC -std=gnu99)
 target_include_directories(snowem PUBLIC .)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindDL.cmake)
