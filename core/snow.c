@@ -72,7 +72,7 @@ snw_sig_auth_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
      peer->peerid = peerid;
   }
   peer->flowid = flowid;
-  SET_FLOW2PEER(flowid,peerid);
+  SET_FLOW2PEER_NET(flowid,peerid);
 
   json_object_object_add(jobj,"id",json_object_new_int(peer->peerid));
   json_object_object_add(jobj,"rc",json_object_new_int(0));
@@ -207,26 +207,31 @@ snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
      //TODO: remove ice_connect from client request
   }
 
-  if (channel->flowid != flowid) {
+  if (channel->flowid == 0) {
+    DEBUG(log,"first user in channel, flowid=%u, channelid=%u",
+      flowid, channel->id);
+    channel->flowid = flowid;
+  } else if (channel->flowid != flowid) {
     json_object *notify;
 
-    DEBUG(log,"notify peer joined event, flowid=%u",peer->flowid);
+    DEBUG(log,"notify peer joined event, flowid=%u, channel_flowid=%u",
+      peer->flowid, channel->flowid);
     notify = json_object_new_object();
     if (!notify) {
       ERROR(log,"falied to notify to ice, flowid=%u",peer->flowid);
       return -1;
     }
-    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_PEER_JOINED));
-    json_object_object_add(jobj,"remoteid",json_object_new_int(peer->flowid));
-    json_object_object_add(jobj,"peerid",json_object_new_int(channel->peerid));
-    json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
-    json_object_object_add(jobj,"is_p2p",
+    json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
+    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_PEER_JOINED));
+    json_object_object_add(notify,"remoteid",json_object_new_int(peer->flowid));
+    json_object_object_add(notify,"peerid",json_object_new_int(channel->peerid));
+    json_object_object_add(notify,"channelid",json_object_new_int(channelid));
+    json_object_object_add(notify,"is_p2p",
         json_object_new_int(peer->peer_type == PEER_TYPE_P2P ? 1 : 0));
 
     str = snw_json_msg_to_string(notify);
     if (str) {
-       snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),channel->flowid);
+       snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flowid);
     }
     json_object_put(notify);
   }
@@ -248,8 +253,8 @@ snw_sig_call_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
       
   str = snw_json_msg_to_string(jobj);
   if (!str) return -1;
-  //FIXME: correct me, not ice2core!!!
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),peerid);
+
+  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),peerid);
 
   return 0;
 }
@@ -669,7 +674,7 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
    }
    json_object_put(jobj);
 
-   peerid = GET_FLOW2PEER(conn->flowid);
+   peerid = GET_FLOW2PEER_NET(conn->flowid);
    peer = snw_peer_search(ctx->peer_cache, peerid);
    if (!peer) {
      ERROR(log,"peer not found, peerid=%u",peerid);

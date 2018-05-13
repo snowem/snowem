@@ -351,7 +351,7 @@ snw_http_task_cb(snw_task_ctx_t *task_ctx, void *data) {
     event_set_log_callback(snw_libevent_log_cb);
   }
 
-  flowset = snw_flowset_init(SNW_CORE_FLOW_NUM_MAX);
+  flowset = snw_flowset_init(SNW_CORE_FLOW_NUM_MAX,SNW_CORE_FLOW_NET_IDX);
   if (flowset == 0) {
      free(http_ctx);
      assert(0);
