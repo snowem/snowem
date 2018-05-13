@@ -237,7 +237,7 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
       stats->last_send_rr_ts = ctx->epoch_curtime;
    }
 
-   if (ctx->epoch_curtime - stats->last_sent_fir_ts > 10000) {
+   if (ctx->epoch_curtime - stats->last_sent_fir_ts > 3000) {
       snw_ice_stream_t *stream = (snw_ice_stream_t*)ctx->stream;
 
       //snw_rtp_send_fir_req(ctx, stream->local_video_ssrc, stream->remote_video_ssrc);

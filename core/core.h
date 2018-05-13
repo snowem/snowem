@@ -108,16 +108,16 @@ struct snw_context {
    uint32_t flow2peer[SNW_CORE_FLOW_NUM_MAX];
 };
 
-#define SET_FLOW2PEER(flowid,peerid) \
-  if (flowid > SNW_CORE_FLOW_BASE_IDX \
-      && ((flowid - SNW_CORE_FLOW_BASE_IDX) < SNW_CORE_FLOW_NUM_MAX)) { \
-    ctx->flow2peer[flowid-SNW_CORE_FLOW_BASE_IDX] = peerid; \
+#define SET_FLOW2PEER_NET(flowid,peerid) \
+  if (flowid > SNW_CORE_FLOW_NET_IDX \
+      && ((flowid - SNW_CORE_FLOW_NET_IDX) < SNW_CORE_FLOW_NUM_MAX)) { \
+    ctx->flow2peer[flowid-SNW_CORE_FLOW_NET_IDX] = peerid; \
   }
 
-#define GET_FLOW2PEER(flowid) \
-  (flowid > SNW_CORE_FLOW_BASE_IDX \
-      && ((flowid - SNW_CORE_FLOW_BASE_IDX) < SNW_CORE_FLOW_NUM_MAX)) ?  \
-    ctx->flow2peer[flowid-SNW_CORE_FLOW_BASE_IDX] : 0;
+#define GET_FLOW2PEER_NET(flowid) \
+  (flowid > SNW_CORE_FLOW_NET_IDX \
+      && ((flowid - SNW_CORE_FLOW_NET_IDX) < SNW_CORE_FLOW_NUM_MAX)) ?  \
+    ctx->flow2peer[flowid-SNW_CORE_FLOW_NET_IDX] : 0;
 
 snw_context_t*
 snw_create_context();

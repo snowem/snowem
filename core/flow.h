@@ -26,7 +26,8 @@ extern "C" {
 
 #include "core/bsd_queue.h"
 
-#define SNW_CORE_FLOW_BASE_IDX 33212368
+#define SNW_CORE_FLOW_NET_IDX  33212368
+#define SNW_CORE_FLOW_HTTP_IDX 63212368
 #define SNW_CORE_FLOW_NUM_MAX  10*1024
 
 #define LIST_INSERT_TAIL(head,type,elm,field) do {\
@@ -54,7 +55,7 @@ struct snw_flowset {
 };
 
 snw_flowset_t*
-snw_flowset_init(uint32_t num);
+snw_flowset_init(uint32_t num, uint32_t baseidx);
 
 uint32_t
 snw_flowset_getid(snw_flowset_t *s);
