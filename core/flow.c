@@ -23,7 +23,7 @@
 #include "flow.h"
 
 snw_flowset_t*
-snw_flowset_init(uint32_t num) {
+snw_flowset_init(uint32_t num, uint32_t baseidx) {
    snw_flow_t *flow;
    snw_flowset_t *flowset;
    uint32_t i, size;
@@ -47,7 +47,7 @@ snw_flowset_init(uint32_t num) {
    flowset->totalnum = num;
    flowset->usednum = 0;
    //flowset->baseidx = random()%1000000;
-   flowset->baseidx = SNW_CORE_FLOW_BASE_IDX;
+   flowset->baseidx = baseidx;
    LIST_INIT(&flowset->freelist);
    LIST_INIT(&flowset->usedlist);
    for (i = 1; i < num; i++) {

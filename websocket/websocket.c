@@ -275,7 +275,7 @@ snw_net_task_cb(snw_task_ctx_t *task_ctx, void *data) {
    ws_ctx->wss_key_file = strdup(ctx->wss_key_file);
    snw_websocket_init_ssl(ws_ctx);
 
-   flowset = snw_flowset_init(SNW_CORE_FLOW_NUM_MAX);
+   flowset = snw_flowset_init(SNW_CORE_FLOW_NUM_MAX,SNW_CORE_FLOW_NET_IDX);
    if (flowset == 0) {
       free(ws_ctx);
       assert(0);
