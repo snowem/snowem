@@ -150,6 +150,74 @@ snw_ice_api_t g_ice_apis[] = {
    //{.msgtype = SNW_CHANNEL}
 };
 
+void
+ice_rtp_established(snw_ice_session_t *session) {
+   snw_ice_context_t *ice_ctx = 0;
+   snw_log_t *log = 0;
+
+   if (!session) return;
+   ice_ctx = session->ice_ctx;
+   log = ice_ctx->log;
+
+   DEBUG(log, "ice connection established, flowid=%u", session->flowid);
+   if ( IS_FLAG(session,ICE_SUBSCRIBER) ) {
+      //FIXME: request fir
+      /*root["cmd"] = SNW_ICE;
+      root["subcmd"] = SNW_ICE_FIR;
+      root["flowid"] = session->flowid;
+      output = writer.write(root);
+      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),session->flowid);*/
+   } else if IS_FLAG(session,ICE_PUBLISHER) {
+
+      //FIXME: do something
+
+   } else if IS_FLAG(session,ICE_REPLAY) {
+      // start replaying a stream.
+   }
+
+   return;
+}
+
+void
+snw_ice_init_log(snw_context_t *ctx) {
+   ctx->log = snw_log_init(ctx->ice_log_file, ctx->log_level,
+       ctx->log_rotate_num, ctx->log_file_maxsize);
+   if (ctx->log == 0) {
+      exit(-1);
+   }
+
+   return;
+}
+
+int
+snw_ice_init_ssl(snw_context_t *ctx) {
+   SSL_CTX  *server_ctx = NULL;
+
+   /* Initialize the OpenSSL library */
+   SSL_load_error_strings();
+   SSL_library_init();
+   OpenSSL_add_all_algorithms();
+
+   /* We MUST have entropy, or else there's no point to crypto. */
+   if (!RAND_poll()) return -1;
+
+   server_ctx = SSL_CTX_new(SSLv23_server_method());
+   if (server_ctx == NULL) {
+      ERROR(ctx->log,"failed to init ssll");
+      return -2;
+   }
+
+   DEBUG(ctx->log,"using certificates: cert_file=%s, key_file=%s",ctx->ice_cert_file,ctx->ice_key_file);
+   if (! SSL_CTX_use_certificate_chain_file(server_ctx, ctx->ice_cert_file) ||
+       ! SSL_CTX_use_PrivateKey_file(server_ctx, ctx->ice_key_file, SSL_FILETYPE_PEM)) {
+       ERROR(ctx->log,"failed to read cert or key files");
+       return -3;
+   }
+   ctx->ssl_ctx = server_ctx;
+
+   return 0;
+}
+
 snw_ice_handlers_t g_ice_handlers[] = {
    {.msgtype = SNW_ICE, .api = SNW_ICE_CREATE, .handler = snw_ice_create_msg},
    {.msgtype = SNW_ICE, .api = SNW_ICE_CONNECT, .handler = snw_ice_connect_msg},
@@ -223,74 +291,6 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    return;
 }
 
-void
-ice_rtp_established(snw_ice_session_t *session) {
-   snw_ice_context_t *ice_ctx = 0;
-   snw_log_t *log = 0;
-
-   if (!session) return;
-   ice_ctx = session->ice_ctx;
-   log = ice_ctx->log;
-
-   DEBUG(log, "ice connection established, flowid=%u", session->flowid);
-   if ( IS_FLAG(session,ICE_SUBSCRIBER) ) {
-      //FIXME: request fir 
-      /*root["cmd"] = SNW_ICE;
-      root["subcmd"] = SNW_ICE_FIR;
-      root["flowid"] = session->flowid;
-      output = writer.write(root);
-      snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),session->flowid);*/
-   } else if IS_FLAG(session,ICE_PUBLISHER) {
-
-      //FIXME: do something
-
-   } else if IS_FLAG(session,ICE_REPLAY) {
-      // start replaying a stream.
-   }
-   
-
-   return;
-}
-
-void
-snw_ice_init_log(snw_context_t *ctx) {
-   ctx->log = snw_log_init(ctx->ice_log_file, ctx->log_level,
-       ctx->log_rotate_num, ctx->log_file_maxsize);
-   if (ctx->log == 0) {
-      exit(-1);   
-   }
-
-   return;
-}
-
-int
-snw_ice_init_ssl(snw_context_t *ctx) {
-   SSL_CTX  *server_ctx = NULL;
-
-   /* Initialize the OpenSSL library */
-   SSL_load_error_strings();
-   SSL_library_init();
-   OpenSSL_add_all_algorithms();
-
-   /* We MUST have entropy, or else there's no point to crypto. */
-   if (!RAND_poll()) return -1;
-
-   server_ctx = SSL_CTX_new(SSLv23_server_method());
-   if (server_ctx == NULL) { 
-      ERROR(ctx->log,"failed to init ssll");
-      return -2; 
-   }
-
-   DEBUG(ctx->log,"using certificates: cert_file=%s, key_file=%s",ctx->ice_cert_file,ctx->ice_key_file);
-   if (! SSL_CTX_use_certificate_chain_file(server_ctx, ctx->ice_cert_file) ||
-       ! SSL_CTX_use_PrivateKey_file(server_ctx, ctx->ice_key_file, SSL_FILETYPE_PEM)) {
-       ERROR(ctx->log,"failed to read cert or key files");
-       return -3;
-   }
-   ctx->ssl_ctx = server_ctx;
-
-   return 0;
-}
 
 void
 snw_ice_task_cb(snw_task_ctx_t *task_ctx, void *data) {

@@ -185,17 +185,27 @@ snw_ice_sdp_add_media_application(snw_ice_session_t *session, int video, char* s
    char buffer[512];
 
    /* sendrecv & rtcp-mux */
-   strncat(sdp, "a=sendrecv\r\n", ICE_BUFSIZE);
+   if (session->peer_type == PEER_TYPE_PUBLISHER) {
+     strncat(sdp, "a=recvonly\r\n", ICE_BUFSIZE);
+   } else if (session->peer_type == PEER_TYPE_PLAYER) {
+     strncat(sdp, "a=sendonly\r\n", ICE_BUFSIZE);
+   } else {
+     //TODO: should check more?
+     strncat(sdp, "a=sendrecv\r\n", ICE_BUFSIZE);
+   }
    snprintf(buffer, 512, "a=rtcp-mux\r\n");
    strncat(sdp, buffer, ICE_BUFSIZE);
 
    /* RTP maps */
    if (video) {
      snprintf(buffer, 512, 
-       "a=rtpmap:%d H264/90000\r\n"
-       "a=fmtp:%d level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\n"
+       //"a=rtpmap:%d H264/90000\r\n"
+       //"a=fmtp:%d level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\r\n"
+       //"a=rtcp-fb:%d ccm fir\r\na=rtcp-fb:%d nack\r\na=rtcp-fb:%d nack pli\r\na=rtcp-fb:%d goog-remb\r\n",
+       //VP8_PT, VP8_PT, VP8_PT, VP8_PT, VP8_PT, VP8_PT);
+       "a=rtpmap:%d VP8/90000\r\n"
        "a=rtcp-fb:%d ccm fir\r\na=rtcp-fb:%d nack\r\na=rtcp-fb:%d nack pli\r\na=rtcp-fb:%d goog-remb\r\n",
-       VP8_PT, VP8_PT, VP8_PT, VP8_PT, VP8_PT, VP8_PT);
+       VP8_PT, VP8_PT, VP8_PT, VP8_PT, VP8_PT);
      strncat(sdp,buffer,ICE_BUFSIZE - strlen(sdp));
    } else {
      snprintf(buffer, 512, "a=rtpmap:%s opus/48000/2\r\n", RTP_OPUS_FORMAT);
