@@ -381,7 +381,7 @@ snw_read_mq(snw_shmmq_t *mq, void* buf, uint32_t buf_size,
   }
 done:
   return ret;
-};
+}
 
 int 
 snw_shmmq_select_fifo(int fd, unsigned _wait_sec, 

@@ -105,8 +105,8 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
    video = (ctx->pkt_type & RTP_VIDEO) != 0;
    hdr = (rtp_hdr_t*)buf;
    seqno = ntohs(hdr->seq); 
-   TRACE(log, "handle package in, seq=%u, ssrc=%u, video=%u", 
-         seqno, ntohl(hdr->ssrc), video);
+   //TRACE(log, "handle package in, seq=%u, ssrc=%u, video=%u", 
+   //      seqno, ntohl(hdr->ssrc), video);
 
    // collect and update stats
    stats = snw_rtcp_stats_find(ctx,&ctx->receiver_stats,ntohl(hdr->ssrc));
@@ -146,10 +146,10 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
 
       session = (snw_ice_session_t*)ctx->session;
       stream = (snw_ice_stream_t*)ctx->stream;
-      DEBUG(log,"sending rtpfb nack, flowid=%u, local_ssrc=%x,"
-                " remote_ssrc=%x, payload=%x", session->flowid,
-                stream->local_video_ssrc, stream->remote_video_ssrc, 
-                nack);
+      //DEBUG(log,"sending rtpfb nack, flowid=%u, local_ssrc=%x,"
+      //          " remote_ssrc=%x, payload=%x", session->flowid,
+      //          stream->local_video_ssrc, stream->remote_video_ssrc, 
+      //          nack);
       //FIXME: take audio stream into account?
       ret = snw_rtcp_gen_nack(rtcpbuf, RTCP_RTPFB_MSG_LEN, 
                         stream->local_video_ssrc, 
@@ -171,10 +171,10 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
       uint32_t lost_interval = 0;
       uint8_t  fraction;
 
-      TRACE(log, "generate receiver rb info, ssrc=%u, cycles=%u, "
-                 "max_seq=%u lastrr_time=%llu, curtime=%llu", 
-            stats->ssrc, stats->seq_win.cycles, stats->seq_win.max_seq, 
-            stats->last_send_rr_ts, ctx->epoch_curtime);
+      //TRACE(log, "generate receiver rb info, ssrc=%u, cycles=%u, "
+      //           "max_seq=%u lastrr_time=%llu, curtime=%llu", 
+      //      stats->ssrc, stats->seq_win.cycles, stats->seq_win.max_seq, 
+      //      stats->last_send_rr_ts, ctx->epoch_curtime);
       
       // generate report block
       memset(&rb,0,sizeof(rb)); 
@@ -187,8 +187,8 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
       else 
          lost = expected - stats->received;
 
-      TRACE(log, "lost rb info, expected=%u, received=%u, lost=%u", 
-            expected, stats->received, lost); 
+      //TRACE(log, "lost rb info, expected=%u, received=%u, lost=%u", 
+      //      expected, stats->received, lost); 
 
       expected_interval = expected - stats->expected_prior;
       stats->expected_prior = expected;
@@ -206,10 +206,10 @@ snw_rtp_nack_handle_pkg_in(void *data, char *buf, int buflen) {
       rb.lsr = htonl(stats->last_sr_ntp);
       rb.dlsr = htonl((uint32_t)((ctx->epoch_curtime - stats->last_sr_recv_ts)*65536 / 1000));
 
-      TRACE(log, "generated report block, ssrc=%u, frac_lost=%u, "
-                 "cum_lost=%u, hi_seqno=%u, jitter=%u, lsr=%u, dlsr=%u",
-            ntohl(rb.ssrc), rb.frac_lost, ntohl(rb.cum_lost)>>8, 
-            ntohl(rb.hi_seqno), ntohl(rb.jitter), ntohl(rb.lsr), ntohl(rb.dlsr));
+      //TRACE(log, "generated report block, ssrc=%u, frac_lost=%u, "
+      //           "cum_lost=%u, hi_seqno=%u, jitter=%u, lsr=%u, dlsr=%u",
+      //      ntohl(rb.ssrc), rb.frac_lost, ntohl(rb.cum_lost)>>8, 
+      //      ntohl(rb.hi_seqno), ntohl(rb.jitter), ntohl(rb.lsr), ntohl(rb.dlsr));
       //HEXDUMP(log,(char*)&rb,sizeof(rb),"rb");
 
       //FIXME: move this code block to a function.
