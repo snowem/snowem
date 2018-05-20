@@ -62,6 +62,7 @@ file(GLOB sources
        core/*.c core/*.cpp core/*.h
        ice/*.c ice/*.h
        websocket/*.c websocket/*.h
+       http/*.c http/*.h
        rtp/*.c rtp/*.h
        )
 file(GLOB c_sources core/*.c ice/*.c websocket/*.c)
