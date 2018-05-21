@@ -58,7 +58,7 @@ snw_sig_auth_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   auth_data = snw_json_msg_get_string(jobj,"auth_data");
   if (!auth_data) return -1;
 
-  //FIXME: send event to redis, and get id instead of using flowid.
+  //FIXME: generate new stream id.
   peerid = flowid;
   ERROR(log,"get a peer, flowid=%u", flowid);
   peer = snw_peer_get(ctx->peer_cache,peerid,&is_new);
@@ -241,7 +241,6 @@ snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
 
 int
 snw_sig_call_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
   const char *str = 0;
   uint32_t peerid = 0;
@@ -592,6 +591,106 @@ snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
   return 0;
 }
 
+void
+snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *notify = 0;
+  const char *str = 0;
+  int i = 0;
+
+  if (!channel 
+      || channel->lastidx >= SNW_CORE_CHANNEL_USER_NUM_MAX) {
+    WARN(log, "channel is full, id=%d", channel->id);
+    return;
+  }
+
+  channel->flows[channel->lastidx] = flowid;
+
+  if (channel->type == SNW_CALL_CHANNEL_TYPE) {
+
+    DEBUG(log,"notify peer joined event, flowid=%u, id=%u", flowid, channel->id);
+    notify = json_object_new_object();
+    if (!notify) {
+      ERROR(log,"falied to notify to ice, flowid=%u",flowid);
+      channel->flows[channel->lastidx] = 0; //reset
+      return;
+    }
+
+    json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
+    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_PEER_JOINED));
+    json_object_object_add(notify,"channelid",json_object_new_int(channel->id));
+    str = snw_json_msg_to_string(notify);
+    if (str) {
+      json_object_put(notify);
+      channel->flows[channel->lastidx] = 0; //reset
+      return;
+    }
+ 
+    for (i=0; i < channel->lastidx; i++) {
+      snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flows[i]);
+    }
+    channel->lastidx++;
+    json_object_put(notify);
+  } else {
+    channel->lastidx++;
+  }
+
+  return;
+}
+
+int
+snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  snw_channel_t *channel = 0;
+  uint32_t channelid = 0;
+  const char *str = 0;
+   
+  DEBUG(log, "connect msg, flowid=%u", flowid);
+
+  channelid = snw_json_msg_get_int(jobj,"channelid");
+  channel = snw_channel_search(ctx->channel_cache,channelid);
+  if (!channel) {
+    ERROR(log, "channel not found, channelid=%u", channelid);
+    return -1;
+  }
+
+  snw_channel_add_flow(ctx,channel,flowid);
+
+  json_object_object_add(jobj,"rc",json_object_new_int(0));
+  json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
+  str = snw_json_msg_to_string(jobj);
+  if (str) {
+    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
+  }
+ 
+  return 0;
+}
+
+
+int
+snw_channel_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
+  snw_log_t *log = ctx->log;
+  uint32_t flowid = conn->flowid;
+  uint32_t api = 0;
+
+  api = snw_json_msg_get_int(jobj,"api");
+  switch(api) {
+    case SNW_CHANNEL_CONNECT:
+        snw_channel_connect_msg(ctx,jobj,0,flowid);
+        break;
+    case SNW_CHANNEL_DISCONNECT:
+        //snw_sig_auth_msg(ctx,jobj,0,flowid);
+        break;
+    default:
+        DEBUG(log, "unknown api, api=%u", api);
+        break;
+  }
+
+
+  return 0;
+}
+
 int
 snw_module_handler(snw_context_t *ctx, snw_connection_t *conn, uint32_t type, char *data, uint32_t len) {
    snw_module_t *m = 0;
@@ -622,7 +721,7 @@ snw_core_process_msg(snw_context_t *ctx, snw_connection_t *conn, char *data, uin
            jobj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
 
    msgtype = snw_json_msg_get_int(jobj,"msgtype");
-   if (msgtype != SNW_ICE && msgtype != SNW_SIG) {
+   if (msgtype != SNW_ICE && msgtype != SNW_SIG && msgtype != SNW_CHANNEL) {
       ERROR(log, "wrong msg, msgtype=%u data=%s", msgtype, data);
       goto done;
    }
@@ -633,6 +732,9 @@ snw_core_process_msg(snw_context_t *ctx, snw_connection_t *conn, char *data, uin
          break;
       case SNW_SIG:
          snw_sig_handler(ctx,conn,jobj);
+         break;
+      case SNW_CHANNEL:
+         snw_channel_handler(ctx,conn,jobj);
          break;
       default:
          snw_module_handler(ctx,conn,msgtype,data,len);
