@@ -19,6 +19,10 @@ extern "C" {
 #define CORE_ROOMINFO_HASHTIME  10
 #define CORE_ROOMINFO_HASHLEN   100
 
+#define CORE_STREAM_SHM_KEY   0x081004
+#define CORE_STREAM_HASHTIME  10
+#define CORE_STREAM_HASHLEN   100
+
 #define ROOM_NAME_LEN 64
 
 typedef struct snw_log snw_log_t;

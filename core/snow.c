@@ -667,6 +667,44 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
   return 0;
 }
 
+int
+snw_channel_create_stream_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  snw_channel_t *channel = 0;
+  snw_stream_t *stream = 0;
+  uint32_t streamid = 0;
+  uint32_t channelid = 0;
+  const char *str = 0;
+  uint32_t channel_type = 0;
+  int is_new = 0;
+  
+  //Step1: get stream id from a pool.
+  streamid = snw_set_getid(ctx->stream_mgr);
+  if (streamid == 0) {
+     ERROR(log, "can not get stream, flowid=%u", flowid);
+     return -1;
+  }
+
+  //Step2: get channel object.
+  channelid = snw_json_msg_get_int(jobj,"channelid");
+  channel = snw_channel_search(ctx->channel_cache,channelid);
+  if (channel == 0) {
+     ERROR(log, "channel not found, channelid=%u, flowid=%u", channelid, flowid);
+     return -1;
+  }
+  snw_list_add_item(&channel->streams,streamid);
+      
+  DEBUG(log,"create a stream, streamid=%u, channelid=%u", streamid, channelid);
+
+  json_object_object_add(jobj,"streamid",json_object_new_int(streamid));
+  json_object_object_add(jobj,"rc",json_object_new_int(0));
+  str = snw_json_msg_to_string(jobj);
+  if (!str) return -1;
+  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
+
+  return 0;
+}
 
 int
 snw_channel_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
@@ -680,7 +718,9 @@ snw_channel_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *job
         snw_channel_connect_msg(ctx,jobj,0,flowid);
         break;
     case SNW_CHANNEL_DISCONNECT:
-        //snw_sig_auth_msg(ctx,jobj,0,flowid);
+        break;
+    case SNW_CHANNEL_CREATE_STREAM:
+        snw_channel_create_stream_msg(ctx,jobj,0,flowid);
         break;
     default:
         DEBUG(log, "unknown api, api=%u", api);
@@ -1250,9 +1290,21 @@ snw_main_process(snw_context_t *ctx) {
       return;
    }
 
+   ctx->stream_cache = snw_stream_init();
+   if (ctx->stream_cache == 0) {
+      ERROR(ctx->log,"failed to init stream cache");
+      return;
+   }
+
    ctx->channel_mgr = snw_set_init(1100000, 10000);
    if (ctx->channel_mgr == 0) {
       ERROR(ctx->log,"failed to init channel set");
+      return;
+   }
+
+   ctx->stream_mgr = snw_set_init(6408638, 10000);
+   if (ctx->stream_mgr == 0) {
+      ERROR(ctx->log,"failed to init stream set");
       return;
    }
 

@@ -23,7 +23,7 @@
 #include "ice/ice_stream.h"
 
 void 
-snw_stream_mempool_init(snw_ice_context_t *ctx) {
+snw_ice_stream_mempool_init(snw_ice_context_t *ctx) {
 
    if (!ctx) return;
 
@@ -35,7 +35,7 @@ snw_stream_mempool_init(snw_ice_context_t *ctx) {
 }
 
 snw_ice_stream_t* 
-snw_stream_allocate(snw_ice_context_t *ctx) {
+snw_ice_stream_allocate(snw_ice_context_t *ctx) {
    snw_ice_stream_t* stream;
 
    if (!ctx || !ctx->stream_mempool)
@@ -51,7 +51,7 @@ snw_stream_allocate(snw_ice_context_t *ctx) {
 
 
 void
-snw_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p) {
+snw_ice_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p) {
 
    if (!ctx || !ctx->stream_mempool)
       return;
@@ -62,7 +62,7 @@ snw_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p) {
 }
 
 snw_ice_stream_t*
-snw_stream_find(ice_stream_head_t *head, uint32_t id) {
+snw_ice_stream_find(ice_stream_head_t *head, uint32_t id) {
    snw_ice_stream_t *s = 0;
 
    if (head == NULL)
@@ -77,7 +77,7 @@ snw_stream_find(ice_stream_head_t *head, uint32_t id) {
 }
 
 void
-snw_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item) {
+snw_ice_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item) {
    
    if ( head == NULL || item == NULL )
       return;
@@ -88,14 +88,14 @@ snw_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item) {
 }
 
 void
-snw_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream) {
+snw_ice_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream) {
 
    return;
 }
 
 
 void
-snw_stream_print_ssrc(snw_ice_context_t *ctx, snw_ice_stream_t *s, const char *info) {
+snw_ice_stream_print_ssrc(snw_ice_context_t *ctx, snw_ice_stream_t *s, const char *info) {
    snw_log_t *log = 0;
 
    if (!ctx || !s) return;

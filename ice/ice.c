@@ -258,7 +258,7 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    snw_ice_sdp_init(ice_ctx);
    snw_ice_session_init(ice_ctx);
    snw_ice_channel_init(ice_ctx);
-   snw_stream_mempool_init(ice_ctx);
+   snw_ice_stream_mempool_init(ice_ctx);
    snw_component_mempool_init(ice_ctx);
 
    ice_ctx->rtcpmux_enabled = 0; 
