@@ -27,7 +27,7 @@ extern "C" {
 #include "types.h"
 
 #define SNW_CORE_CHANNEL_USER_NUM_MAX 100
-#define SNW_CORE_CHANNEL_STREAMS_NUM_MAX 10
+#define SNW_CORE_CHANNEL_STREAM_NUM_MAX 10
 #define SNW_SUBCHANNEL_NUM_MAX 10
 
 typedef struct snw_peer_list snw_peer_list_t;
@@ -50,6 +50,21 @@ struct snw_subchannel {
   uint32_t channelid;
 };
 
+#define MAX_LIST_NUM 10
+typedef struct snw_list snw_list_t;
+struct snw_list {
+  snw_list_t *next;
+  uint32_t total;
+  uint32_t idx;
+  uint32_t list[MAX_LIST_NUM];
+};
+
+void
+snw_list_add_item(snw_list_t *l, uint32_t id);
+
+void
+snw_list_remove_item(snw_list_t *l, uint32_t id);
+
 typedef struct snw_channel snw_channel_t;
 struct snw_channel {
    uint32_t id;       //channelid
@@ -65,9 +80,9 @@ struct snw_channel {
    uint32_t peers[SNW_CORE_CHANNEL_USER_NUM_MAX];
    ///////////////////////////////////
 
-   int      lastidx;
-   uint32_t flows[SNW_CORE_CHANNEL_USER_NUM_MAX];
-   uint32_t streams[SNW_CORE_CHANNEL_STREAMS_NUM_MAX];
+   int        lastidx;
+   uint32_t   flows[SNW_CORE_CHANNEL_USER_NUM_MAX];
+   snw_list_t streams;
 };
 
 snw_hashbase_t*

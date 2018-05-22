@@ -60,25 +60,25 @@ struct snw_ice_stream {
 typedef LIST_HEAD(ice_stream_head, snw_ice_stream) ice_stream_head_t;
 
 void
-snw_stream_mempool_init(snw_ice_context_t *ctx);
+snw_ice_stream_mempool_init(snw_ice_context_t *ctx);
 
 snw_ice_stream_t*
-snw_stream_allocate(snw_ice_context_t *ctx);
+snw_ice_stream_allocate(snw_ice_context_t *ctx);
 
 void
-snw_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p);
+snw_ice_stream_deallocate(snw_ice_context_t *ctx, snw_ice_stream_t* p);
 
 snw_ice_stream_t* 
-snw_stream_find(ice_stream_head_t *head, uint32_t id);
+snw_ice_stream_find(ice_stream_head_t *head, uint32_t id);
 
 void
-snw_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item);
+snw_ice_stream_insert(ice_stream_head_t *head, snw_ice_stream_t *item);
 
 void
-snw_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream);
+snw_ice_stream_free(ice_stream_head_t *streams, snw_ice_stream_t *stream);
 
 void
-snw_stream_print_ssrc(snw_ice_context_t *ctx, snw_ice_stream_t *s, const char *info);
+snw_ice_stream_print_ssrc(snw_ice_context_t *ctx, snw_ice_stream_t *s, const char *info);
 
 #ifdef __cplusplus
 }

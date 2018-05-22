@@ -15,8 +15,8 @@
  *
  */
 
-#ifndef _SNOW_CORE_CHANNEL_MGR_H_
-#define _SNOW_CORE_CHANNEL_MGR_H_
+#ifndef _SNOW_CORE_SETMGR_H_
+#define _SNOW_CORE_SETMGR_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,7 +70,7 @@ snw_set_free(snw_set_t *s);
 }
 #endif
 
-#endif // _CHANNEL_MGR_H_
+#endif // SNW_CORE_SETMGR_H_
 
 
 

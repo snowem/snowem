@@ -84,7 +84,7 @@ snw_ice_send_local_candidate(snw_ice_session_t *session, int video, uint32_t str
    log = session->ice_ctx->log;
 
    agent = session->agent;
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if(!stream) {
       ERROR(log, "stream not found, sid=%d", stream_id);
       return;
@@ -258,7 +258,7 @@ snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *us
    DEBUG(log, "gathering done, stream=%d, cdone=%u, streams_num=%u",
          stream_id, session->streams_gathering_done, session->streams_num);
 
-   snw_ice_stream_t *stream = snw_stream_find(&session->streams, stream_id);
+   snw_ice_stream_t *stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%d", stream_id);
       return;
@@ -317,7 +317,7 @@ snw_ice_cb_new_selected_pair(agent_t *agent, uint32_t stream_id,
 
    DEBUG(log, "new selected pair, cid=%d, sid=%d, local=%s, remote=%s",
                 component_id, stream_id, local, remote);
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -360,7 +360,7 @@ snw_ice_cb_component_state_changed(agent_t *agent,
    DEBUG(log, "component state changed, cid=%u, sid=%u, state=%d",
          component_id, stream_id, state);
 
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -411,7 +411,7 @@ snw_ice_cb_new_remote_candidate(agent_t *agent, uint32_t stream_id,
       return;
    }
 
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -912,7 +912,7 @@ snw_ice_create_media_stream(snw_ice_session_t *session, int video) {
    log = session->ice_ctx->log;
 
    stream_id = ice_agent_add_stream(session->agent, IS_FLAG(session, WEBRTC_RTCPMUX) ? 1 : 2);
-   stream = snw_stream_allocate(session->ice_ctx);
+   stream = snw_ice_stream_allocate(session->ice_ctx);
    if (stream == 0) {
       return -2;
    }
@@ -923,7 +923,7 @@ snw_ice_create_media_stream(snw_ice_session_t *session, int video) {
    stream->is_video = video;
    stream->dtls_type = DTLS_TYPE_ACTPASS;
    LIST_INIT(&stream->components);
-   snw_stream_insert(&session->streams,stream);
+   snw_ice_stream_insert(&session->streams,stream);
       
    if (video) {
       session->video_stream = stream;
@@ -1164,7 +1164,7 @@ ice_stream_cleanup(snw_ice_context_t *ice_ctx, snw_ice_stream_t *stream) {
       ice_component_free(ice_ctx, &stream->components, stream->rtcp_component);
    }
 
-   snw_stream_deallocate(ice_ctx,stream);
+   snw_ice_stream_deallocate(ice_ctx,stream);
 
    return;
 }
@@ -1341,7 +1341,7 @@ ice_setup_remote_candidates(snw_ice_session_t *session, uint32_t stream_id, uint
       return;
    log = session->ice_ctx->log;
 
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream || LIST_EMPTY(&stream->components)) {
       ERROR(log, "stream not found, sid=%d, cid=%d", stream_id, component_id);
       return;

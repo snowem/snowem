@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "channel_mgr.h"
+#include "setmgr.h"
 
 int
 snw_set_is_in_range(snw_set_t *s, uint32_t id) {

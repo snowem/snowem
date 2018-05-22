@@ -108,5 +108,30 @@ snw_channel_remove(snw_hashbase_t *ctx, snw_channel_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }
 
+void
+snw_list_add_item(snw_list_t *l, uint32_t id) {
+  if (!l) return;
+
+  l->list[l->idx] = id;
+  l->idx++;
+
+  return;
+}
+
+void
+snw_list_remove_item(snw_list_t *l, uint32_t id) {
+  int i = 0;
+
+  if (!l) return;
+  
+  for (i=0; i < l->idx; i++) {
+    if (l->list[i] == id)
+      break;
+  }
+  l->list[i] = l->list[l->idx];
+  l->idx--;
+
+  return;
+}
 
 
