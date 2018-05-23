@@ -44,6 +44,7 @@ enum {
 };
 
 struct snw_ice_session {
+   uint32_t streamid;
    uint32_t flowid;
    uint32_t channelid;
    uint32_t live_channelid;

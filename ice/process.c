@@ -45,7 +45,9 @@ void ice_send_candidate(snw_ice_session_t *session,
    if (!jobj || !candobj) return;
    json_object_object_add(jobj, "msgtype", json_object_new_int(SNW_ICE));
    json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_CANDIDATE));
-   json_object_object_add(jobj, "roomid", json_object_new_int(0));
+   json_object_object_add(jobj, "streamid", json_object_new_int(session->streamid));
+   json_object_object_add(jobj, "channelid", json_object_new_int(session->channelid));
+   json_object_object_add(jobj, "flowid", json_object_new_int(session->flowid));
    json_object_object_add(jobj, "callid", json_object_new_string("callid"));
    if (video) {
      json_object_object_add(candobj, "label", json_object_new_int(1));
@@ -278,6 +280,9 @@ snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *us
       if (!jobj || !sdpobj) return;
       json_object_object_add(jobj, "msgtype", json_object_new_int(SNW_ICE));
       json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_SDP));
+      json_object_object_add(jobj, "streamid", json_object_new_int(session->streamid));
+      json_object_object_add(jobj, "channelid", json_object_new_int(session->channelid));
+      json_object_object_add(jobj, "flowid", json_object_new_int(session->flowid));
       json_object_object_add(sdpobj, "type", json_object_new_string("offer"));
       json_object_object_add(sdpobj, "sdp", json_object_new_string(session->local_sdp));
       json_object_object_add(jobj, "sdp", sdpobj);
@@ -1052,17 +1057,19 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    json_object *jobj = (json_object*)data;
    const char* peer_type;
    uint32_t channelid = 0;
+   uint32_t streamid = 0;
    int is_new = 0;
    
    if (!jobj) return;
 
    channelid = snw_json_msg_get_int(jobj,"channelid");
    peer_type = snw_json_msg_get_string(jobj,"peer_type");
-   if (channelid == (uint32_t)-1 || peer_type == 0)
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (channelid == (uint32_t)-1 || peer_type == 0 || streamid == (uint32_t)-1)
      return;
  
-   DEBUG(log,"connect msg, flowid=%u", flowid);
-   session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,flowid,&is_new);
+   DEBUG(log,"connect msg, streamid=%u", streamid);
+   session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,streamid,&is_new);
    if (!session) {
       ERROR(log,"failed to get session, flowid=%u",flowid);
       return;
@@ -1077,7 +1084,8 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    DEBUG(log,"init new session, channelid=%u, peer_type=%s, flowid=%u", 
          channelid, peer_type, session->flowid);
    
-   session->channelid = 0;
+   session->channelid = channelid;
+   session->flowid = flowid;
    session->channel = 0;
    session->control_mode = ICE_CONTROLLED_MODE;
    session->flags = 0;
@@ -1391,9 +1399,16 @@ snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid
    ice_sdp_attr_t sdp_attr;
    const char *jsep_type = 0;
    const char *jsep_sdp = 0;
+   uint32_t streamid = 0;
    int ret = 0;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (streamid == (uint32_t)-1) {
+     ERROR(log, "streamid not found");
+     return;
+   }
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (session == 0) {
       ERROR(log, "failed to malloc");
       return;
@@ -1581,9 +1596,16 @@ snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t 
    snw_ice_session_t *session;
    json_object *jobj = (json_object*)data;
    json_object *cand_obj = 0;
+   uint32_t streamid = 0;
    int ret = -1;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (streamid == (uint32_t)-1) {
+     ERROR(log, "streamid not found");
+     return;
+   }
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (!session) {
       DEBUG(log, "session not found, flowid=%u", flowid);
       return;

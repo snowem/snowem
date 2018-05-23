@@ -27,26 +27,26 @@
 int
 ice_session_key(const void *item) {  
    snw_ice_session_t *so =  (snw_ice_session_t *)item;
-   return so->flowid;
+   return so->streamid;
 }
 
 int
 ice_session_eq(const void *arg1, const void *arg2) {  
    snw_ice_session_t *item1 = (snw_ice_session_t *)arg1;
    snw_ice_session_t *item2 = (snw_ice_session_t *)arg2;
-   return (item1->flowid == item2->flowid);
+   return (item1->streamid == item2->streamid);
 }
 
 int
 ice_session_isempty(const void *arg) {
    snw_ice_session_t *item = (snw_ice_session_t *)arg;
-   return (item->flowid == 0);
+   return (item->streamid == 0);
 }
 
 int            
 ice_session_setempty(const void *arg) {
    snw_ice_session_t *item = (snw_ice_session_t *)arg;
-   item->flowid = 0;
+   item->streamid = 0;
    return 0;
 }
 
@@ -63,7 +63,7 @@ snw_ice_session_init(snw_ice_context_t *ctx) {
 }
 
 snw_ice_session_t*
-snw_ice_session_get(snw_ice_context_t *ctx, uint32_t flowid, int *is_new) {
+snw_ice_session_get(snw_ice_context_t *ctx, uint32_t streamid, int *is_new) {
    snw_log_t *log = 0;
    snw_ice_session_t key;
    snw_ice_session_t *so;
@@ -71,33 +71,33 @@ snw_ice_session_get(snw_ice_context_t *ctx, uint32_t flowid, int *is_new) {
    if (!ctx) return 0;
    log = ctx->log;
     
-   key.flowid = flowid;
+   key.streamid = streamid;
    so = CACHE_GET(ctx->session_cache, &key, is_new, snw_ice_session_t*);
 
    if (so == 0)
       return 0;
 
    if (!(*is_new)) {
-      WARN(log,"get old session, flowid=%u, ice_ctx=%p", 
-            flowid, so->ice_ctx);
+      WARN(log,"get old session, streamid=%u, ice_ctx=%p", 
+            streamid, so->ice_ctx);
       return so;
    }
 
    // reset new session
-   DEBUG(log,"get new session, flowid=%u, is_new=%u, ice_ctx=%p", 
-         flowid, is_new, so->ice_ctx);
+   DEBUG(log,"get new session, streamid=%u, is_new=%u, ice_ctx=%p", 
+         streamid, is_new, so->ice_ctx);
    memset(so, 0, sizeof(snw_ice_session_t));
    LIST_INIT(&so->streams);
-   so->flowid = flowid;
+   so->streamid = streamid;
 
    return so;
 }
 
 /*CACHE_SEARCH(ctx->session_cache, sitem, snw_ice_session_t*);*/
 snw_ice_session_t*
-snw_ice_session_search(snw_ice_context_t *ctx, uint32_t flowid) {
+snw_ice_session_search(snw_ice_context_t *ctx, uint32_t streamid) {
    snw_ice_session_t sitem;
-   sitem.flowid = flowid;
+   sitem.streamid = streamid;
    return (snw_ice_session_t*)snw_cache_search(ctx->session_cache, &sitem);
 }
 
@@ -112,36 +112,5 @@ int
 snw_ice_session_remove(snw_ice_context_t *ctx, snw_ice_session_t *sitem) {
    return snw_cache_remove(ctx->session_cache, sitem);
 }
-
-
-/*void
-ice_session_remove(uint32_t key)
-{
-   hashbase_t *base = g_handle_base;
-   snw_ice_session_t *item = 0;
-   char *table = 0;
-   int   value = 0;
-   uint32_t      i;
-
-   if ( base == NULL )
-      return;
-
-   if ( key == 0 )
-      return;
-
-   table = (char*)base->hb_cache;
-
-   for ( i=0; i < base->hb_time; i++ ) {
-      value = key % base->hb_base[i];
-      item = (snw_ice_session_t*)(table
-                   + i*base->hb_len*base->hb_objsize
-                   + value*base->hb_objsize);
-      if ( item->flowid == key ) {
-         item->flowid = 0;
-      }
-   }
-
-   return;
-}*/
 
 
