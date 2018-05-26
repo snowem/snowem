@@ -1054,6 +1054,7 @@ void
 snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
+   snw_ice_channel_t *channel;
    json_object *jobj = (json_object*)data;
    const char* peer_type;
    uint32_t channelid = 0;
@@ -1081,12 +1082,21 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
       return;
    }
 
+   is_new = 0;
+   channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,streamid,&is_new); //TODO: used to use channelid
+   if (!channel || !is_new) {
+      ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
+            flowid, is_new);
+      snw_ice_send_msg_to_core(ice_ctx,jobj,flowid,-1);
+      return;
+   }
+
    DEBUG(log,"init new session, channelid=%u, peer_type=%s, flowid=%u", 
          channelid, peer_type, session->flowid);
    
    session->channelid = channelid;
    session->flowid = flowid;
-   session->channel = 0;
+   session->channel = channel;
    session->control_mode = ICE_CONTROLLED_MODE;
    session->flags = 0;
    snw_rtp_ctx_init(&session->rtp_ctx);
@@ -1106,6 +1116,8 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
       session->peer_type = PEER_TYPE_UNKNOWN;
       return;
    }
+
+
 
    snw_ice_offer_sdp(ice_ctx,session,flowid);
 
@@ -1637,48 +1649,72 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    snw_log_t *log = 0;
    snw_ice_session_t *session = 0;
    json_object *jobj = (json_object*)data;
-   uint32_t channelid;
+   uint32_t channelid = 0;
+   uint32_t streamid = 0;
    snw_ice_channel_t *channel = 0;
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
-   if (!session) return;
+   DEBUG(log, "channel is publishing, flowid=%u, channelid=%u", 
+         flowid, channelid);
 
    channelid = snw_json_msg_get_int(jobj,"channelid");
-   if (channelid == (uint32_t)-1) return;
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (channelid == (uint32_t)-1 || streamid == (uint32_t)-1) return;
 
    DEBUG(log, "channel is publishing, flowid=%u, channelid=%u", 
          flowid, channelid);
-   session->channelid = channelid;
-   channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
+   if (!session) return;
+
+   if (session->channelid != channelid) {
+      ERROR(log,"channelid not match, flowid=%u, channleid=%u, session_channelid=%u ",
+          flowid,channelid, session->channelid);
+      return;
+   }
+
+   /*channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
    if (!channel) {
       ERROR(log,"channel not found, flowid=%u, channleid=%u",flowid,channelid);
       return;
    }
-   session->channel = channel;
+   session->channel = channel;*/
 
+   DEBUG(log, "channel is publishing, flowid=%u, streamid=%u, channelid=%u", 
+         flowid, streamid, channelid);
    SET_FLAG(session,ICE_PUBLISHER);
    return;
 }
 
 void
 snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
+   snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session = 0;
    json_object *jobj = (json_object*)data;
    uint32_t channelid = 0;
+   uint32_t streamid = 0;
+   uint32_t publishid = 0;
 
    if (!ice_ctx) return;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
+   channelid = snw_json_msg_get_int(jobj,"channelid");
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   publishid = snw_json_msg_get_int(jobj,"publishid");
+   if (channelid == (uint32_t)-1 
+       || streamid == (uint32_t)-1
+       || publishid == (uint32_t)-1) {
+     DEBUG(log, "play a stream, flowid=%u, channelid=%u, streamid=%u, publishid=%u", 
+         flowid, channelid, streamid, publishid);
+     return;
+   }
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (!session) return;
    SET_FLAG(session,ICE_SUBSCRIBER);
 
-   channelid = snw_json_msg_get_int(jobj,"channelid");
-   if (channelid == (uint32_t)-1) return;
-
-   snw_channel_add_subscriber(ice_ctx, channelid, flowid);
+   snw_channel_add_subscriber(ice_ctx, publishid, streamid);
    session->live_channelid = channelid;
   
    return;
