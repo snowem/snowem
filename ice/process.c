@@ -1057,7 +1057,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    snw_ice_session_t *session;
    snw_ice_channel_t *channel;
    json_object *jobj = (json_object*)data;
-   const char* peer_type;
+   uint32_t stream_type = 0;
    uint32_t channelid = 0;
    uint32_t streamid = 0;
    int is_new = 0;
@@ -1065,9 +1065,9 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    if (!jobj) return;
 
    channelid = snw_json_msg_get_int(jobj,"channelid");
-   peer_type = snw_json_msg_get_string(jobj,"peer_type");
+   stream_type = snw_json_msg_get_int(jobj,"stream_type");
    streamid = snw_json_msg_get_int(jobj,"streamid");
-   if (channelid == (uint32_t)-1 || peer_type == 0 || streamid == (uint32_t)-1)
+   if (channelid == (uint32_t)-1 || stream_type == (uint32_t)-1 || streamid == (uint32_t)-1)
      return;
  
    DEBUG(log,"connect msg, streamid=%u", streamid);
@@ -1092,8 +1092,8 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
       return;
    }
 
-   DEBUG(log,"init new session, channelid=%u, peer_type=%s, flowid=%u", 
-         channelid, peer_type, session->flowid);
+   DEBUG(log,"init new session, channelid=%u, stream_type=%u, flowid=%u", 
+         channelid, stream_type, session->flowid);
    
    session->channelid = channelid;
    session->flowid = flowid;
@@ -1106,20 +1106,14 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    session->rtp_ctx.send_pkt = send_pkt_callback;
    LIST_INIT(&session->streams);
 
-   if (!strncmp(peer_type,"pub",3)) {
-      session->peer_type = PEER_TYPE_PUBLISHER;
-   } else if (!strncmp(peer_type,"pla",3)) {
-      session->peer_type = PEER_TYPE_PLAYER;
-   } else if (!strncmp(peer_type,"p2p",3)) {
-      session->peer_type = PEER_TYPE_P2P;
-   } else {
-      ERROR(log,"unknown peer type, flowid=%u, peer_type=%s",flowid,peer_type);
-      session->peer_type = PEER_TYPE_UNKNOWN;
+   if ( !(stream_type == STREAM_TYPE_PUBLISHER
+        || stream_type == STREAM_TYPE_SUBSCRIBER
+        || stream_type == STREAM_TYPE_P2P) ) {
+      ERROR(log,"unknown peer type, flowid=%u, stream_type=%s", flowid, stream_type);
+      session->stream_type = PEER_TYPE_UNKNOWN;
       return;
    }
-
-
-
+   session->stream_type = stream_type;
    snw_ice_offer_sdp(ice_ctx,session,flowid);
 
    return;

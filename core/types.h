@@ -72,6 +72,20 @@ typedef struct snw_module snw_module_t;
 #define MAX_BUFFER_SIZE 16*1024*1024
 #define MAX_HTTP_BUFFER_SIZE 4*1024*1024
 
+enum {
+   STREAM_TYPE_UNKNOWN = 0,
+   STREAM_TYPE_PUBLISHER = 1,
+   STREAM_TYPE_SUBSCRIBER = 2,
+   STREAM_TYPE_P2P = 3,
+};
+
+enum {
+   STREAM_STATE_ERROR = 0,
+   STREAM_STATE_OK = 1,
+};
+
+
+
 #ifdef __cplusplus
 }
 #endif

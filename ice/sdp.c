@@ -185,9 +185,9 @@ snw_ice_sdp_add_media_application(snw_ice_session_t *session, int video, char* s
    char buffer[512];
 
    /* sendrecv & rtcp-mux */
-   if (session->peer_type == PEER_TYPE_PUBLISHER) {
+   if (session->stream_type == STREAM_TYPE_PUBLISHER) {
      strncat(sdp, "a=recvonly\r\n", ICE_BUFSIZE);
-   } else if (session->peer_type == PEER_TYPE_PLAYER) {
+   } else if (session->stream_type == STREAM_TYPE_SUBSCRIBER) {
      strncat(sdp, "a=sendonly\r\n", ICE_BUFSIZE);
    } else {
      //TODO: should check more?

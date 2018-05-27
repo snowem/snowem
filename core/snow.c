@@ -113,7 +113,6 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
      channel->id = channelid;
   }
   channel->flowid = flowid; //TODO: no need to have flowid
-  channel->peerid = conn->peerid;
   channel->type = channel_type;
        
   DEBUG(log,"create channel, channelid=%u", channelid);
@@ -164,16 +163,16 @@ snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   if (!peer_type) return -1;
 
   if (!strncmp(peer_type,"pub",3)) {
-    conn->peer_type = PEER_TYPE_PUBLISHER;
+    //conn->peer_type = STREAM_TYPE_PUBLISHER;
     forward_to_ice = 1;
   } else if (!strncmp(peer_type,"pla",3)) {
-    conn->peer_type = PEER_TYPE_PLAYER;
+    //conn->peer_type = STREAM_TYPE_PLAYER;
     forward_to_ice = 1;
   } else if (!strncmp(peer_type,"p2p",3)) {
-    conn->peer_type = PEER_TYPE_P2P;
+    //conn->peer_type = STREAM_TYPE_P2P;
   } else {
     ERROR(log,"unknown peer type, flowid=%u, peer_type=%s",flowid,peer_type);
-    conn->peer_type = PEER_TYPE_UNKNOWN;
+    //conn->peer_type = STREAM_TYPE_UNKNOWN;
     return -2;
   }
 
@@ -198,10 +197,10 @@ snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
     json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
     json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
     json_object_object_add(notify,"remoteid",json_object_new_int(conn->flowid));
-    json_object_object_add(notify,"peerid",json_object_new_int(channel->peerid));
+    //json_object_object_add(notify,"peerid",json_object_new_int(channel->peerid));
     json_object_object_add(notify,"channelid",json_object_new_int(channelid));
-    json_object_object_add(notify,"is_p2p",
-        json_object_new_int(conn->peer_type == PEER_TYPE_P2P ? 1 : 0));
+    //json_object_object_add(notify,"is_p2p",
+    //    json_object_new_int(conn->peer_type == PEER_TYPE_P2P ? 1 : 0));
 
     str = snw_json_msg_to_string(notify);
     if (str) {
@@ -293,7 +292,7 @@ snw_sig_publish_subchannel(snw_context_t *ctx, uint32_t flowid,
     return -3;
   }
   subchannel->flowid = channel->flowid;
-  subchannel->peerid = channel->peerid;
+  //subchannel->peerid = channel->peerid;
   subchannel->parentid = channel->id;
   subchannel->type = SNW_LIVE_CHANNEL_TYPE;
   snw_sig_add_subchannel(channel, flowid, channelid);
@@ -421,7 +420,6 @@ snw_sig_publish_msg_old(snw_context_t *ctx, void *data, int len, uint32_t flowid
   if (channel->type == SNW_CONF_CHANNEL_TYPE) {
     sub_channelid = snw_sig_publish_subchannel(ctx, flowid, channel);
     snw_sig_broadcast_new_subchannel(ctx,channelid,sub_channelid,flowid);
-    conn->peer_type = PEER_TYPE_PUBLISHER;
     conn->channelid = sub_channelid;
 
     //response with list of published streams in the channel

@@ -85,7 +85,7 @@ snw_ice_session_get(snw_ice_context_t *ctx, uint32_t streamid, int *is_new) {
 
    // reset new session
    DEBUG(log,"get new session, streamid=%u, is_new=%u, ice_ctx=%p", 
-         streamid, is_new, so->ice_ctx);
+         streamid, *is_new, so->ice_ctx);
    memset(so, 0, sizeof(snw_ice_session_t));
    LIST_INIT(&so->streams);
    so->streamid = streamid;

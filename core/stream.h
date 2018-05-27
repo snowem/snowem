@@ -22,19 +22,6 @@
 
 #include "types.h"
 
-enum {
-   STREAM_TYPE_UNKNOWN = 0,
-   STREAM_TYPE_PUBLISHER = 1,
-   STREAM_TYPE_PLAYER = 2,
-   STREAM_TYPE_P2P = 3,
-};
-
-enum {
-   STREAM_STATE_ERROR = 0,
-   STREAM_STATE_OK = 1,
-};
-
-
 typedef struct snw_stream snw_stream_t;
 struct snw_stream {
    uint32_t id; //streamid

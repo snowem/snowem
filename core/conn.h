@@ -22,23 +22,16 @@
 
 #include "types.h"
 
-enum {
-   PEER_TYPE_UNKNOWN = 0,
-   PEER_TYPE_PUBLISHER = 1,
-   PEER_TYPE_PLAYER = 2,
-   PEER_TYPE_P2P = 3,
-};
-
 
 typedef struct snw_conn snw_conn_t;
 struct snw_conn {
    uint32_t flowid;
-   uint32_t peerid;
    uint32_t channelid;
    uint32_t srctype;
    uint32_t ipaddr;
    uint16_t port;
-   int      peer_type;
+   //uint32_t peerid;
+   //int      stream_type;
 };
 
 snw_hashbase_t*
