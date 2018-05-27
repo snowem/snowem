@@ -108,7 +108,7 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   if (!str) return -1;
 
   if (!strncmp(str,"broadcast",9)) {
-    channel_type = SNW_BCST_CHANNEL_TYPE;
+    channel_type = SNW_LIVE_CHANNEL_TYPE;
   } else 
   if (!strncmp(str,"call",4)) {
     channel_type = SNW_CALL_CHANNEL_TYPE;
@@ -321,7 +321,7 @@ snw_sig_publish_subchannel(snw_context_t *ctx, uint32_t flowid,
   subchannel->flowid = channel->flowid;
   subchannel->peerid = channel->peerid;
   subchannel->parentid = channel->id;
-  subchannel->type = SNW_BCST_CHANNEL_TYPE;
+  subchannel->type = SNW_LIVE_CHANNEL_TYPE;
   snw_sig_add_subchannel(channel, flowid, channelid);
 
   //inform ice component about new channel
@@ -477,7 +477,7 @@ snw_sig_publish_msg_old(snw_context_t *ctx, void *data, int len, uint32_t flowid
   }
 
   if (channel->type != SNW_CALL_CHANNEL_TYPE
-      && channel->type != SNW_BCST_CHANNEL_TYPE) {
+      && channel->type != SNW_LIVE_CHANNEL_TYPE) {
     ERROR(log, "unknow channel type, type=%u", channel->type);
     return -2;
   }
@@ -601,7 +601,7 @@ snw_sig_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   }
 
   if (channel->type != SNW_CALL_CHANNEL_TYPE
-      && channel->type != SNW_BCST_CHANNEL_TYPE) {
+      && channel->type != SNW_LIVE_CHANNEL_TYPE) {
     ERROR(log, "unknow channel type, type=%u", channel->type);
     return -2;
   }
@@ -1174,7 +1174,7 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
 
    snw_peer_remove(ctx->peer_cache, peer);
 
-   /*if (channel->type == SNW_BCST_CHANNEL_TYPE) {
+   /*if (channel->type == SNW_LIVE_CHANNEL_TYPE) {
      // send event to subscriber
      json_object *req = json_object_new_object();
      
@@ -1276,7 +1276,6 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
   json_object *jobj = (json_object*)data;
   const char *str = 0;
   const char *roomname = 0;
-  const char *type_str = 0;
   snw_roominfo_t *room = 0;
   snw_channel_t *channel = 0;
   uint32_t channelid;
@@ -1285,13 +1284,20 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
   int ret = -1;
 
   roomname = snw_json_msg_get_string(jobj,"name");
-  type_str = snw_json_msg_get_string(jobj,"type");
-  if (!roomname || !type_str) {
+  channel_type = snw_json_msg_get_int(jobj,"type");
+  if (!roomname || channel_type == (uint32_t)-1) {
     goto error;
   }
 
-  if (!strncmp(type_str,"broadcast",9)) {
-    channel_type = SNW_BCST_CHANNEL_TYPE;
+  if ( !((channel_type == SNW_LIVE_CHANNEL_TYPE)
+       || (channel_type == SNW_CALL_CHANNEL_TYPE)
+       || (channel_type == SNW_CONF_CHANNEL_TYPE)) ) {
+    ERROR(log, "unknown channel type: %u", channel_type);
+    goto error;
+  }
+
+  /*if (!strncmp(type_str,"broadcast",9)) {
+    channel_type = SNW_LIVE_CHANNEL_TYPE;
   } else
   if (!strncmp(type_str,"call",4)) {
     channel_type = SNW_CALL_CHANNEL_TYPE;
@@ -1301,7 +1307,7 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
   } else {
     ERROR(log, "unknow channel type: %s", type_str);
     goto error;
-  }
+  }*/
 
   DEBUG(log,"create channel with name, name=%s",roomname);
   room = snw_roominfo_get(ctx->roominfo_cache,
