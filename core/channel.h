@@ -26,13 +26,13 @@ extern "C" {
 #include "cache.h"
 #include "types.h"
 
-#define SNW_CORE_CHANNEL_USER_NUM_MAX 100
-#define SNW_CORE_CHANNEL_STREAM_NUM_MAX 10
+#define SNW_USER_NUM_MAX 100
+#define SNW_STREAM_NUM_MAX 10
 #define SNW_SUBCHANNEL_NUM_MAX 10
 
 typedef struct snw_peer_list snw_peer_list_t;
 struct snw_peer_list {
-   uint32_t peers[SNW_CORE_CHANNEL_USER_NUM_MAX];
+   uint32_t peers[SNW_USER_NUM_MAX];
    LIST_ENTRY(snw_peer_list) list;
 };
 typedef LIST_HEAD(peerlist_head, snw_flow) peerlist_head_t;
@@ -77,11 +77,11 @@ struct snw_channel {
    char     name[ROOM_NAME_LEN];
    snw_subchannel_t subchannels[SNW_SUBCHANNEL_NUM_MAX];
    int      idx;
-   uint32_t peers[SNW_CORE_CHANNEL_USER_NUM_MAX];
+   uint32_t peers[SNW_USER_NUM_MAX];
    ///////////////////////////////////
 
    int        lastidx;
-   uint32_t   flows[SNW_CORE_CHANNEL_USER_NUM_MAX];
+   uint32_t   flows[SNW_USER_NUM_MAX];
    snw_list_t streams; //list of stream ids
 };
 

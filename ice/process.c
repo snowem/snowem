@@ -200,7 +200,6 @@ void
 snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    json_object *jobj = (json_object*)data;
-   json_object *jchannel = 0;
    snw_ice_channel_t *channel = 0;
    uint32_t channelid = 0;
    int is_new = 0;
@@ -1668,7 +1667,6 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    json_object *jobj = (json_object*)data;
    uint32_t channelid = 0;
    uint32_t streamid = 0;
-   snw_ice_channel_t *channel = 0;
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
@@ -1691,13 +1689,6 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
           flowid,channelid, session->channelid);
       return;
    }
-
-   /*channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
-   if (!channel) {
-      ERROR(log,"channel not found, flowid=%u, channleid=%u",flowid,channelid);
-      return;
-   }
-   session->channel = channel;*/
 
    DEBUG(log, "channel is publishing, flowid=%u, streamid=%u, channelid=%u", 
          flowid, streamid, channelid);
