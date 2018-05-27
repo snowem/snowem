@@ -1034,8 +1034,7 @@ snw_ice_session_setup(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
 }
 
 static int
-snw_ice_offer_sdp(snw_ice_context_t *ice_ctx, 
-      snw_ice_session_t *session, uint32_t flowid) {
+snw_ice_offer_sdp(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
    snw_log_t *log;
    int ret = 0;
 
@@ -1079,7 +1078,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
 
    if (!is_new) {
       WARN(log,"old session, flowid=%u, ice_ctx=%p",session->flowid, session->ice_ctx);
-      snw_ice_offer_sdp(ice_ctx,session,flowid);
+      snw_ice_offer_sdp(ice_ctx,session);
       return;
    }
 
@@ -1110,11 +1109,11 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
         || stream_type == STREAM_TYPE_SUBSCRIBER
         || stream_type == STREAM_TYPE_P2P) ) {
       ERROR(log,"unknown peer type, flowid=%u, stream_type=%s", flowid, stream_type);
-      session->stream_type = PEER_TYPE_UNKNOWN;
+      session->stream_type = STREAM_TYPE_UNKNOWN;
       return;
    }
    session->stream_type = stream_type;
-   snw_ice_offer_sdp(ice_ctx,session,flowid);
+   snw_ice_offer_sdp(ice_ctx,session);
 
    return;
 }

@@ -36,13 +36,6 @@ enum {
    ICE_CONTROLLING_MODE = 1,
 };
 
-enum {
-   PEER_TYPE_UNKNOWN = 0,
-   PEER_TYPE_PUBLISHER = 1,
-   PEER_TYPE_PLAYER = 2,
-   PEER_TYPE_P2P = 3,
-};
-
 struct snw_ice_session {
    uint32_t streamid;
    uint32_t flowid;
@@ -58,7 +51,6 @@ struct snw_ice_session {
    int                streams_num;
    int                control_mode;
 
-   //snw_ice_stream_t   streams;
    ice_stream_head_t streams;
    snw_ice_stream_t  *audio_stream;
    snw_ice_stream_t  *video_stream;
