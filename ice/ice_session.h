@@ -48,6 +48,7 @@ struct snw_ice_session {
    uint32_t flowid;
    uint32_t channelid;
    uint32_t live_channelid;
+   uint32_t publishid;
 
    snw_ice_context_t *ice_ctx;
    agent_t           *agent;

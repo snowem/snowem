@@ -127,22 +127,22 @@ snw_print_channel_info(snw_ice_context_t *ctx, snw_ice_channel_t *c) {
 
 void
 snw_channel_add_subscriber(snw_ice_context_t *ice_ctx, 
-      uint32_t channelid, uint32_t flowid) {
+      uint32_t publishid, uint32_t streamid) {
    snw_log_t *log = 0;
    snw_ice_channel_t *channel = 0;
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
 
-   ERROR(log, "subscribing channel, flowid=%u, channelid=%u", flowid, channelid);
-   channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
+   DEBUG(log, "subscribing channel, streamid=%u, publishid=%u", streamid, publishid);
+   channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,publishid);
    if (!channel) return;
 
    if (channel->idx >= SNW_ICE_CHANNEL_USER_NUM_MAX) {
-      ERROR(log, "channel info full, flowid=%u, channelid=%u", flowid, channelid);
+      ERROR(log, "channel info full, streamid=%u, publishid=%u", streamid, publishid);
       return;
    }
-   channel->players[channel->idx] = flowid;
+   channel->players[channel->idx] = streamid;
    channel->idx++;
 
 #ifdef SNW_ENABLE_DEBUG
@@ -154,7 +154,7 @@ snw_channel_add_subscriber(snw_ice_context_t *ice_ctx,
 
 void
 snw_channel_remove_subscriber(snw_ice_context_t *ice_ctx, 
-      uint32_t channelid, uint32_t flowid) {
+      uint32_t publishid, uint32_t streamid) {
    snw_log_t *log = 0;
    snw_ice_channel_t *channel = 0;
    int found = 0;
@@ -162,13 +162,13 @@ snw_channel_remove_subscriber(snw_ice_context_t *ice_ctx,
    if (!ice_ctx) return;
    log = ice_ctx->log;
 
-   DEBUG(log, "removing from channel, flowid=%u, channelid=%u", 
-        flowid, channelid);
-   channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
+   DEBUG(log, "removing from channel, streamid=%u, publishid=%u", 
+        streamid, publishid);
+   channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,publishid);
    if (!channel) return;
 
    for (uint32_t i=0; i<channel->idx; i++) {
-      if (channel->players[i] == flowid) {
+      if (channel->players[i] == streamid) {
          found = 1;
          channel->idx--;
          channel->players[i] = channel->players[channel->idx];
@@ -182,7 +182,7 @@ snw_channel_remove_subscriber(snw_ice_context_t *ice_ctx,
 #endif
 
    if (!found) {
-      WARN(log, "not found, flowid=%u, channelid=%u", flowid, channelid);
+      WARN(log, "not found, streamid=%u, publishid=%u", streamid, publishid);
       return;
    }
 

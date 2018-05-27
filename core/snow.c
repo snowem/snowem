@@ -59,7 +59,7 @@ snw_sig_auth_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   if (!auth_data) return -1;
 
   //FIXME: generate new stream id.
-  peerid = flowid;
+  /*peerid = flowid;
   ERROR(log,"get a peer, flowid=%u", flowid);
   peer = snw_peer_get(ctx->peer_cache,peerid,&is_new);
   if (peer == 0) {
@@ -78,7 +78,7 @@ snw_sig_auth_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   json_object_object_add(jobj,"rc",json_object_new_int(0));
   str = snw_json_msg_to_string(jobj);
   if (!str) return -1;
-  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),peer->flowid);
+  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),peer->flowid);*/
 
   return 0;
 }
@@ -222,7 +222,7 @@ snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
       return -1;
     }
     json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_NEW_STREAM));
+    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
     json_object_object_add(notify,"remoteid",json_object_new_int(peer->flowid));
     json_object_object_add(notify,"peerid",json_object_new_int(channel->peerid));
     json_object_object_add(notify,"channelid",json_object_new_int(channelid));
@@ -507,7 +507,7 @@ snw_sig_broadcast_new_stream(snw_context_t *ctx,
   }
 
   json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_EVENT));
-  json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_NEW_STREAM));
+  json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
   json_object_object_add(jobj,"channelid",json_object_new_int(channel->id));
 
   jarray = json_object_new_array();
@@ -713,6 +713,24 @@ snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
 }
 
 void
+snw_channel_delete_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
+  int i = 0;
+
+  for (i=0; i < channel->lastidx; i++) {
+    if (channel->flows[i] == flowid)
+      break;
+  }
+
+  if (i >= channel->lastidx)
+    return;
+
+  channel->flows[i] = channel->flows[channel->lastidx];
+  channel->lastidx--;
+
+  return;
+}
+
+void
 snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   json_object *notify = 0;
@@ -738,7 +756,7 @@ snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid
     }
 
     json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_NEW_STREAM));
+    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
     json_object_object_add(notify,"channelid",json_object_new_int(channel->id));
     str = snw_json_msg_to_string(notify);
     if (str) {
@@ -765,8 +783,10 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
   json_object *jobj = (json_object*)data;
   json_object *streams = 0;
   snw_channel_t *channel = 0;
+  snw_peer_t *conn = 0;
   uint32_t channelid = 0;
   const char *str = 0;
+  int is_new = 0;
    
   channelid = snw_json_msg_get_int(jobj,"channelid");
   channel = snw_channel_search(ctx->channel_cache,channelid);
@@ -774,6 +794,14 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
     ERROR(log, "channel not found, channelid=%u", channelid);
     return -1;
   }
+
+  conn = snw_peer_get(ctx->peer_cache, flowid, &is_new);
+  if (!conn || !is_new) {
+    ERROR(log, "cannot create conn, flowid=%u, channelid=%u",
+        flowid, channelid);
+    return -1;
+  }
+  conn->channelid = channelid;
 
   DEBUG(log, "connect msg, channelid=%u, flowid=%u, idx=%u", 
       channelid, flowid, channel->streams.idx);
@@ -793,12 +821,14 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
       json_object *item = 0;
 
       stream = snw_stream_search(ctx->stream_cache,channel->streams.list[i]);
-      DEBUG(log,"connect msg search for stream, streamid=%u, type=%u",
-           channel->streams.list[i], stream->type);
+      DEBUG(log,"connect msg search for stream, streamid=%u", channel->streams.list[i]);
       if (!stream || stream->type != STREAM_TYPE_PUBLISHER) {
         DEBUG(log,"connect msg stream not found, streamid=%u",channel->streams.list[i]);
         continue;
       }
+
+      DEBUG(log,"connect msg search for stream, streamid=%u, type=%u",
+           channel->streams.list[i], stream->type);
 
       item = json_object_new_object();
       if (!item) {
@@ -870,6 +900,7 @@ snw_channel_create_stream_msg(snw_context_t *ctx, void *data, int len, uint32_t 
     ERROR(log, "no new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
     return -2;
   }
+  stream->flowid = flowid;
 
   //Step2: get channel object.
   channelid = snw_json_msg_get_int(jobj,"channelid");
@@ -987,18 +1018,49 @@ snw_core_connect(snw_context_t *ctx, snw_connection_t *conn) {
    return 0;
 }
 
+void
+snw_core_disconnect_stream(snw_context_t *ctx, snw_stream_t *stream) {
+  snw_log_t *log = ctx->log;
+  json_object *req = json_object_new_object();
+  char *str = 0;
+     
+  if (!stream || !req) return -1;
+
+  json_object_object_add(req,"msgtype",json_object_new_int(SNW_ICE));
+  json_object_object_add(req,"api",json_object_new_int(SNW_ICE_STOP));
+  json_object_object_add(req,"channelid",json_object_new_int(stream->channelid));
+  json_object_object_add(req,"streamid",json_object_new_int(stream->id));
+  str = snw_json_msg_to_string(req);
+  if (!str) {
+    json_object_put(req);
+    return -1;
+  }
+  DEBUG(log, "send event to ice streamid=%u, flowid=%u, s=%s", 
+      stream->id, stream->flowid, str);
+
+  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str, strlen(str),stream->flowid);
+
+  json_object_put(req);
+  snw_stream_remove(ctx->stream_cache, stream);
+  return;
+}
+
 int
 snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
    snw_log_t *log = ctx->log;
-   json_object *jobj = 0;
    const char *str = 0;
    uint32_t peerid;
    snw_peer_t *peer = 0;
    uint32_t channelid = 0;
+   uint32_t flowid = 0;
    snw_channel_t *channel = 0;
    snw_channel_t *pchannel = 0;
+   json_object *jobj = 0;
+   json_object *jarray = 0;
+   int i = 0;
+   int found_deleted_streams = 0;
 
-   jobj = json_object_new_object();
+   /*jobj = json_object_new_object();
    if (!jobj) return -1;
    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_STOP));
@@ -1007,22 +1069,25 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
    if (str) {
      snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),conn->flowid);
    }
-   json_object_put(jobj);
+   json_object_put(jobj);*/
 
-   peerid = GET_FLOW2PEER_NET(conn->flowid);
-   peer = snw_peer_search(ctx->peer_cache, peerid);
+   //peerid = GET_FLOW2PEER_NET(conn->flowid);
+
+   flowid = conn->flowid;
+   peer = snw_peer_search(ctx->peer_cache, conn->flowid);
    if (!peer) {
      ERROR(log,"peer not found, peerid=%u",peerid);
      return -1;
    }
 
-   if (peer->peer_type != PEER_TYPE_PUBLISHER) {
-     snw_peer_remove(ctx->peer_cache, peer);
-     return 0;
-   }
+   DEBUG(log,"connection found, flowid=%u, peer_flowid=%u",
+       conn->flowid, peer->flowid);
+   //if (peer->peer_type != PEER_TYPE_PUBLISHER) {
+   //  snw_peer_remove(ctx->peer_cache, peer);
+   //  return 0;
+   //}
 
    channelid = peer->channelid;
-   snw_peer_remove(ctx->peer_cache, peer);
 
    channel = snw_channel_search(ctx->channel_cache, channelid);
    if (!channel) {
@@ -1030,7 +1095,86 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
       return 0;
    }
 
-   if (channel->type == SNW_BCST_CHANNEL_TYPE) {
+   DEBUG(log,"channel found, flowid=%u, channelid=%u",
+      conn->flowid, channelid);
+   
+   jarray = json_object_new_array();
+   if ( !jarray) {
+     ERROR(log, "cannot alloc json object");
+     return -1;
+   }
+
+   for (i=0; i<channel->streams.idx; i++) {
+     snw_stream_t *s = 0;
+     DEBUG(log,"check stream, streamid=%u", channel->streams.list[i]);
+     s = snw_stream_search(ctx->stream_cache,channel->streams.list[i]);
+     if (!s) {
+       DEBUG(log,"stream not found, streamid=%u", channel->streams.list[i]);
+       continue;
+     }
+
+     DEBUG(log,"delete stream, flowid=%u, peer_flowid=%u", s->flowid, peer->flowid);
+
+     if (s->flowid == peer->flowid) {
+       json_object *jitem = 0;
+
+       if (s->type != STREAM_TYPE_PUBLISHER) {
+         snw_core_disconnect_stream(ctx,s);
+         continue;
+       }
+
+       found_deleted_streams = 1;
+       jitem = json_object_new_object();
+       if (!jitem) {
+         if (jarray) json_object_put(jarray);
+         ERROR(log, "cannot alloc json object");
+         return -3;
+       }
+
+       json_object_object_add(jitem,"streamid",json_object_new_int(s->id));
+       json_object_array_add(jarray, jitem);
+
+       DEBUG(log,"delete stream, flowid=%u, streamid=%u", s->flowid, s->id);
+       snw_core_disconnect_stream(ctx,s);
+     }
+   }
+
+
+   if (found_deleted_streams) {
+     jobj = json_object_new_object();
+     if (!jobj) {
+       if (jarray) json_object_put(jarray);
+       ERROR(log, "cannot alloc json object");
+       return -3;
+     }
+     json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_EVENT));
+     json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_REMOVE_STREAM));
+     json_object_object_add(jobj,"channelid",json_object_new_int(channel->id));
+
+     json_object_object_add(jobj,"streams",jarray);
+
+     str = snw_json_msg_to_string(jobj);
+     if (!str) {
+       json_object_put(jobj);
+       return -2;
+     }
+
+     DEBUG(log,"broadcast deleted streams, str=%s", str);
+     snw_channel_delete_flow(ctx,channel,flowid);
+
+     for (i=0; i < channel->lastidx; i++) {
+       DEBUG(log,"broadcast deleted streams, flowid=%u, str=%s", channel->flows[i], str);
+       snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flows[i]);
+     }
+   } else {
+     DEBUG(log,"just deleted streams, str=%s", str);
+     snw_channel_delete_flow(ctx,channel,flowid);
+     if (jarray) json_object_put(jarray);
+   }
+
+   snw_peer_remove(ctx->peer_cache, peer);
+
+   /*if (channel->type == SNW_BCST_CHANNEL_TYPE) {
      // send event to subscriber
      json_object *req = json_object_new_object();
      
@@ -1067,7 +1211,7 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *conn) {
    } else
    if (channel->type == SNW_CONF_CHANNEL_TYPE) {
      // TODO: check and clean
-   }
+   }*/
 
    return 0;
 }

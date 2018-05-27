@@ -82,7 +82,7 @@ struct snw_channel {
 
    int        lastidx;
    uint32_t   flows[SNW_CORE_CHANNEL_USER_NUM_MAX];
-   snw_list_t streams;
+   snw_list_t streams; //list of stream ids
 };
 
 snw_hashbase_t*

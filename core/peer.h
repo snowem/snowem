@@ -32,8 +32,8 @@ enum {
 
 typedef struct snw_peer snw_peer_t;
 struct snw_peer {
-   uint32_t peerid;
    uint32_t flowid;
+   uint32_t peerid;
    uint32_t channelid;
    int      peer_type;
 };

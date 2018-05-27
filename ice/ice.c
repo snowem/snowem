@@ -15,8 +15,9 @@
  *
  */
 
-#include <stdio.h>
+#include <assert.h>
 #include <bsd/bsd.h>
+#include <stdio.h>
 
 #include "core/core.h"
 #include "core/log.h"
@@ -257,7 +258,9 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
   
    snw_ice_sdp_init(ice_ctx);
    snw_ice_session_init(ice_ctx);
-   snw_ice_channel_init(ice_ctx);
+   if (snw_ice_channel_init(ice_ctx) < 0) {
+     assert(0);
+   }
    snw_ice_stream_mempool_init(ice_ctx);
    snw_component_mempool_init(ice_ctx);
 
