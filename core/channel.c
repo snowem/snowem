@@ -88,7 +88,6 @@ snw_channel_get(snw_hashbase_t *ctx, uint32_t id, int *is_new) {
    return so;
 }
 
-/*CACHE_SEARCH(ctx->channel_cache, sitem, snw_channel_t*);*/
 snw_channel_t*
 snw_channel_search(snw_hashbase_t *ctx, uint32_t id) {
    snw_channel_t sitem;
@@ -96,13 +95,11 @@ snw_channel_search(snw_hashbase_t *ctx, uint32_t id) {
    return (snw_channel_t*)snw_cache_search(ctx, &sitem);
 }
 
-/*CACHE_INSERT(ctx->channel_cache, sitem, snw_channel_t*);*/
 snw_channel_t*
 snw_channel_insert(snw_hashbase_t *ctx, snw_channel_t *sitem) {
    return (snw_channel_t*)snw_cache_insert(ctx, sitem);
 }
 
-/*CACHE_REMOVE(ctx->channel_cache, sitem, snw_channel_t*);*/
 int 
 snw_channel_remove(snw_hashbase_t *ctx, snw_channel_t *sitem) {
    return snw_cache_remove(ctx, sitem);

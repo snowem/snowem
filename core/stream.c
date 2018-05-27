@@ -94,7 +94,6 @@ snw_stream_get(snw_hashbase_t *ctx, uint32_t id, int *is_new) {
    return so;
 }
 
-/*CACHE_SEARCH(ctx, sitem, snw_stream_t*);*/
 snw_stream_t*
 snw_stream_search(snw_hashbase_t *ctx, uint32_t id) {
    snw_stream_t sitem;
@@ -102,47 +101,14 @@ snw_stream_search(snw_hashbase_t *ctx, uint32_t id) {
    return (snw_stream_t*)snw_cache_search(ctx, &sitem);
 }
 
-/*CACHE_INSERT(ctx, sitem, snw_stream_t*);*/
 snw_stream_t*
 snw_stream_insert(snw_hashbase_t *ctx, snw_stream_t *sitem) {
    return (snw_stream_t*)snw_cache_insert(ctx, sitem);
 }
 
-/*CACHE_REMOVE(ctx, sitem, snw_stream_t*);*/
 int 
 snw_stream_remove(snw_hashbase_t *ctx, snw_stream_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }
-
-
-/*void
-stream_remove(uint32_t key)
-{
-   hashbase_t *base = g_handle_base;
-   snw_stream_t *item = 0;
-   char *table = 0;
-   int   value = 0;
-   uint32_t      i;
-
-   if ( base == NULL )
-      return;
-
-   if ( key == 0 )
-      return;
-
-   table = (char*)base->hb_cache;
-
-   for ( i=0; i < base->hb_time; i++ ) {
-      value = key % base->hb_base[i];
-      item = (snw_stream_t*)(table
-                   + i*base->hb_len*base->hb_objsize
-                   + value*base->hb_objsize);
-      if ( item->id == key ) {
-         item->id = 0;
-      }
-   }
-
-   return;
-}*/
 
 

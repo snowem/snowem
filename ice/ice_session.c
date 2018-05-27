@@ -93,7 +93,6 @@ snw_ice_session_get(snw_ice_context_t *ctx, uint32_t streamid, int *is_new) {
    return so;
 }
 
-/*CACHE_SEARCH(ctx->session_cache, sitem, snw_ice_session_t*);*/
 snw_ice_session_t*
 snw_ice_session_search(snw_ice_context_t *ctx, uint32_t streamid) {
    snw_ice_session_t sitem;
@@ -101,13 +100,11 @@ snw_ice_session_search(snw_ice_context_t *ctx, uint32_t streamid) {
    return (snw_ice_session_t*)snw_cache_search(ctx->session_cache, &sitem);
 }
 
-/*CACHE_INSERT(ctx->session_cache, sitem, snw_ice_session_t*);*/
 snw_ice_session_t*
 snw_ice_session_insert(snw_ice_context_t *ctx, snw_ice_session_t *sitem) {
    return (snw_ice_session_t*)snw_cache_insert(ctx->session_cache, sitem);
 }
 
-/*CACHE_REMOVE(ctx->session_cache, sitem, snw_ice_session_t*);*/
 int 
 snw_ice_session_remove(snw_ice_context_t *ctx, snw_ice_session_t *sitem) {
    return snw_cache_remove(ctx->session_cache, sitem);
