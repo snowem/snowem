@@ -39,9 +39,9 @@ typedef LIST_HEAD(peerlist_head, snw_flow) peerlist_head_t;
 
 /* Channel type */
 enum {
-   SNW_BCST_CHANNEL_TYPE = 0,
+   SNW_CONF_CHANNEL_TYPE = 0,
    SNW_CALL_CHANNEL_TYPE = 1,
-   SNW_CONF_CHANNEL_TYPE = 2,
+   SNW_LIVE_CHANNEL_TYPE = 2,
 };
 
 typedef struct snw_subchannel snw_subchannel_t;
