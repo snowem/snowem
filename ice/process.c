@@ -205,13 +205,13 @@ snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flo
    uint32_t channelid = 0;
    int is_new = 0;
 
+   //TODO: this function never be called.
    if (!jobj) return;
 
-   json_object_object_get_ex(jobj,"channelid",&jchannel);
+   channelid = snw_json_msg_get_int(jobj,"channelid");
+   DEBUG(log,"create ice channel, flowid=%u, channelid=%u", 
+            flowid, channelid);
 
-   if (!jchannel || json_object_get_type(jchannel) != json_type_int)
-     return;
-   channelid = json_object_get_int(jchannel);
    channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,channelid,&is_new);
    if (!channel || !is_new) {
       ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
@@ -220,6 +220,8 @@ snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flo
       return;
    }
 
+   DEBUG(log,"create ice channel, flowid=%u, channelid=%u", 
+            flowid, channelid);
    //TODO: not useful for frontend?
    json_object_object_add(jobj,"id",json_object_new_int(flowid));
    json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
@@ -1235,9 +1237,11 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
       free(session->remote_sdp);
       session->remote_sdp = 0;
    }
-
-   snw_channel_remove_subscriber(ice_ctx, session->live_channelid, 
-        session->flowid);
+   
+   if (session->publishid != 0) {
+      snw_channel_remove_subscriber(ice_ctx, session->publishid, 
+        session->streamid);
+   }
    session->live_channelid = 0;
 
    //FIXME: free streams & components
@@ -1250,6 +1254,9 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
    }
 
    CLEAR_FLAG(session, WEBRTC_READY);
+
+   snw_ice_session_remove(ice_ctx,session);
+
    return;
 }
 
@@ -1257,15 +1264,25 @@ void
 snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
-   
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx,flowid);
+   json_object *jobj = (json_object*)data;
+   uint32_t streamid = 0;
+
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
+
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (streamid == (uint32_t)-1) return;
+
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx,streamid);
    if (!session) {
       ERROR(log,"session not found, flowid=%u",flowid);
       return;
    }
 
-   DEBUG(log,"stop session, flowid=%u",flowid);
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
    snw_ice_session_free(ice_ctx,session);
+
    return;
 }
 
@@ -1716,6 +1733,7 @@ snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowi
 
    snw_channel_add_subscriber(ice_ctx, publishid, streamid);
    session->live_channelid = channelid;
+   session->publishid = publishid;
   
    return;
 }
