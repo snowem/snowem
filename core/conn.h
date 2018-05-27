@@ -30,8 +30,6 @@ struct snw_conn {
    uint32_t srctype;
    uint32_t ipaddr;
    uint16_t port;
-   //uint32_t peerid;
-   //int      stream_type;
 };
 
 snw_hashbase_t*

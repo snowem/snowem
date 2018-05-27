@@ -1235,7 +1235,6 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
       snw_channel_remove_subscriber(ice_ctx, session->publishid, 
         session->streamid);
    }
-   session->live_channelid = 0;
 
    //FIXME: free streams & components
    if (LIST_EMPTY(&session->streams))
@@ -1717,7 +1716,6 @@ snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowi
    SET_FLAG(session,ICE_SUBSCRIBER);
 
    snw_channel_add_subscriber(ice_ctx, publishid, streamid);
-   session->live_channelid = channelid;
    session->publishid = publishid;
   
    return;
