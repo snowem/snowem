@@ -52,7 +52,7 @@ struct snw_ice_session {
 
    snw_ice_context_t *ice_ctx;
    agent_t           *agent;
-   int                peer_type;
+   int                stream_type;
    uint32_t           flags;
 
    int                streams_gathering_done;
