@@ -326,39 +326,6 @@ snw_sig_publish_subchannel(snw_context_t *ctx, uint32_t flowid,
 }
 
 void
-snw_sig_broadcast_new_subchannel(snw_context_t *ctx, 
-    uint32_t channelid, uint32_t subchannelid, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  snw_channel_t *channel = 0;
-  json_object *jobj = 0;
-  const char *str = 0;
-
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return;
-  }
-
-  jobj = json_object_new_object();
-  if (!jobj) return;
-  json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_EVENT));
-  json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_ADD_SUBCHANNEL));
-  json_object_object_add(jobj,"peerid",json_object_new_int(flowid));
-  json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
-  json_object_object_add(jobj,"subchannelid",json_object_new_int(subchannelid));
-  str = snw_json_msg_to_string(jobj);
-  DEBUG(log, "send event of new subchannel to peer,"
-      " scid=%u, flowid=%u, s=%s", 
-      subchannelid, flowid, str);
-
-  for (int i=0; i<channel->idx; i++) {
-    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str, strlen(str),channel->peers[i]);
-  }
-
-  return;
-}
-
-void
 snw_core_channel_add_peer(snw_context_t *ctx,
     uint32_t channelid, uint32_t flowid) {
   snw_log_t *log = ctx->log;
@@ -385,81 +352,6 @@ snw_core_channel_remove_subscriber(snw_context_t *ctx,
     uint32_t channelid, uint32_t flowid) {
   //TODO: impl
   return;
-}
-
-int
-snw_sig_publish_msg_old(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  json_object *subchannels = 0;
-  const char *str = 0;
-  uint32_t channelid = 0;
-  uint32_t sub_channelid = 0;
-  snw_channel_t *channel = 0;
-  uint32_t peerid = 0;
-  snw_conn_t *conn = 0;
-
-  peerid = snw_json_msg_get_int(jobj,"id");
-  conn = snw_conn_search(ctx->conn_cache, peerid);
-  if (!conn) {
-    ERROR(log,"peer not found, flowid=%u, peerid=%u", flowid, peerid);
-    return -1;
-  }
-
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-  snw_core_channel_add_peer(ctx,channelid,flowid);
-
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return -1;
-  }
-  DEBUG(log,"publish req, flowid=%u, channelid=%u, type=%u",
-    flowid, channelid, channel->type);
-
-  if (channel->type == SNW_CONF_CHANNEL_TYPE) {
-    sub_channelid = snw_sig_publish_subchannel(ctx, flowid, channel);
-    snw_sig_broadcast_new_subchannel(ctx,channelid,sub_channelid,flowid);
-    conn->channelid = sub_channelid;
-
-    //response with list of published streams in the channel
-    subchannels = json_object_new_array();
-    if (!subchannels) return -1;
-    for (int i=0; i < SNW_SUBCHANNEL_NUM_MAX; i++) {
-      if (channel->subchannels[i].channelid != 0) {
-        json_object *item = json_object_new_object();
-        if (!item) {
-          json_object_put(subchannels);
-          return -1;
-        }
-
-        DEBUG(log,"subchannel info: pid=%u, cid=%u", 
-          channel->subchannels[i].peerid, channel->subchannels[i].channelid);
-        json_object_object_add(item,"peerid",json_object_new_int(channel->subchannels[i].peerid));
-        json_object_object_add(item,"subchannelid",json_object_new_int(channel->subchannels[i].channelid));
-        json_object_array_add(subchannels,item);
-      }
-    }
-    json_object_object_add(jobj,"subchannels",subchannels);
-    json_object_object_add(jobj,"rc",json_object_new_int(0));
-    str = snw_json_msg_to_string(jobj);
-    if (!str) return -1;
-    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
-    return 0;
-  }
-
-  if (channel->type != SNW_CALL_CHANNEL_TYPE
-      && channel->type != SNW_LIVE_CHANNEL_TYPE) {
-    ERROR(log, "unknow channel type, type=%u", channel->type);
-    return -2;
-  }
-
-  json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-  json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
- 
-  return 0;
 }
 
 int

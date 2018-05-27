@@ -160,7 +160,7 @@ ice_rtp_established(snw_ice_session_t *session) {
    ice_ctx = session->ice_ctx;
    log = ice_ctx->log;
 
-   DEBUG(log, "ice connection established, flowid=%u", session->flowid);
+   DEBUG(log, "ice connection established, streamid=%u", session->streamid);
    if ( IS_FLAG(session,ICE_SUBSCRIBER) ) {
       //FIXME: request fir
       /*root["cmd"] = SNW_ICE;

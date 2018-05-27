@@ -34,8 +34,7 @@ struct snw_play_list {
 
 typedef struct snw_ice_channel snw_ice_channel_t;
 struct snw_ice_channel {
-   uint32_t id;     //channelid
-   uint32_t peerid; //owner's peerid
+   uint32_t id;     //streamid
 
    uint32_t idx;
    uint32_t players[SNW_ICE_CHANNEL_USER_NUM_MAX];
