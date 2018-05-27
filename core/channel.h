@@ -69,21 +69,11 @@ typedef struct snw_channel snw_channel_t;
 struct snw_channel {
    uint32_t id;       //channelid
    uint32_t type;     //channel type
-
-   //TODO: remove the following block
-   uint32_t flowid;   //owner's flowid
-   uint32_t parentid; //parent channel's id
    char     name[ROOM_NAME_LEN];
-   snw_subchannel_t subchannels[SNW_SUBCHANNEL_NUM_MAX];
-   int      idx;
-   uint32_t peers[SNW_USER_NUM_MAX];
-   ///////////////////////////////////
 
    int        lastidx;
    uint32_t   flows[SNW_USER_NUM_MAX];
    snw_list_t streams; //list of stream ids
-   
-   //uint32_t peerid;   //owner's peerid
 };
 
 snw_hashbase_t*
