@@ -18,42 +18,42 @@
 #include <stdio.h>
 
 #include "cache.h"
+#include "conn.h"
 #include "log.h"
-#include "peer.h"
 
 int
-peer_key(const void *item)
+conn_key(const void *item)
 {  
-   snw_peer_t *so =  (snw_peer_t *)item;
+   snw_conn_t *so =  (snw_conn_t *)item;
    return so->flowid;
 }
 
 int
-peer_eq(const void *arg1, const void *arg2)
+conn_eq(const void *arg1, const void *arg2)
 {  
-   snw_peer_t *item1 = (snw_peer_t *)arg1;
-   snw_peer_t *item2 = (snw_peer_t *)arg2;
+   snw_conn_t *item1 = (snw_conn_t *)arg1;
+   snw_conn_t *item2 = (snw_conn_t *)arg2;
    return (item1->flowid == item2->flowid);
 }
 
 int
-peer_isempty(const void *arg)
+conn_isempty(const void *arg)
 {
-   snw_peer_t *item = (snw_peer_t *)arg;
+   snw_conn_t *item = (snw_conn_t *)arg;
    return (item->flowid == 0);
 }
 
 int            
-peer_setempty(const void *arg)
+conn_setempty(const void *arg)
 {
-   snw_peer_t *item = (snw_peer_t *)arg;
+   snw_conn_t *item = (snw_conn_t *)arg;
    item->flowid = 0;
    return 0;
 }
 
 
 snw_hashbase_t*
-snw_peer_init() {
+snw_conn_init() {
    snw_hashbase_t *ctx;
    int ret = 0;
 
@@ -62,23 +62,23 @@ snw_peer_init() {
 
    ret = snw_cache_init(ctx, CORE_PEER_SHM_KEY, 
            CORE_PEER_HASHTIME, CORE_PEER_HASHLEN,
-           sizeof(snw_peer_t), CACHE_FLAG_CREATE | CACHE_FLAG_INIT, 
-           peer_eq, peer_key, peer_isempty, peer_setempty);
+           sizeof(snw_conn_t), CACHE_FLAG_CREATE | CACHE_FLAG_INIT, 
+           conn_eq, conn_key, conn_isempty, conn_setempty);
 
    if (ret < 0) return 0;
 
    return ctx;
 }
 
-snw_peer_t*
-snw_peer_get(snw_hashbase_t *ctx, uint32_t flowid, int *is_new) {
-   snw_peer_t key;
-   snw_peer_t *so;
+snw_conn_t*
+snw_conn_get(snw_hashbase_t *ctx, uint32_t flowid, int *is_new) {
+   snw_conn_t key;
+   snw_conn_t *so;
   
    if (!ctx) return 0;
     
    key.flowid = flowid;
-   so = CACHE_GET(ctx, &key, is_new, snw_peer_t*);
+   so = CACHE_GET(ctx, &key, is_new, snw_conn_t*);
 
    if (so == 0)
       return 0;
@@ -88,38 +88,38 @@ snw_peer_get(snw_hashbase_t *ctx, uint32_t flowid, int *is_new) {
    }
 
    // reset new session
-   memset(so, 0, sizeof(snw_peer_t));
+   memset(so, 0, sizeof(snw_conn_t));
    so->flowid = flowid;
 
    return so;
 }
 
-/*CACHE_SEARCH(ctx, sitem, snw_peer_t*);*/
-snw_peer_t*
-snw_peer_search(snw_hashbase_t *ctx, uint32_t flowid) {
-   snw_peer_t sitem;
+/*CACHE_SEARCH(ctx, sitem, snw_conn_t*);*/
+snw_conn_t*
+snw_conn_search(snw_hashbase_t *ctx, uint32_t flowid) {
+   snw_conn_t sitem;
    sitem.flowid = flowid;
-   return (snw_peer_t*)snw_cache_search(ctx, &sitem);
+   return (snw_conn_t*)snw_cache_search(ctx, &sitem);
 }
 
-/*CACHE_INSERT(ctx, sitem, snw_peer_t*);*/
-snw_peer_t*
-snw_peer_insert(snw_hashbase_t *ctx, snw_peer_t *sitem) {
-   return (snw_peer_t*)snw_cache_insert(ctx, sitem);
+/*CACHE_INSERT(ctx, sitem, snw_conn_t*);*/
+snw_conn_t*
+snw_conn_insert(snw_hashbase_t *ctx, snw_conn_t *sitem) {
+   return (snw_conn_t*)snw_cache_insert(ctx, sitem);
 }
 
-/*CACHE_REMOVE(ctx, sitem, snw_peer_t*);*/
+/*CACHE_REMOVE(ctx, sitem, snw_conn_t*);*/
 int 
-snw_peer_remove(snw_hashbase_t *ctx, snw_peer_t *sitem) {
+snw_conn_remove(snw_hashbase_t *ctx, snw_conn_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }
 
 
 /*void
-peer_remove(uint32_t key)
+conn_remove(uint32_t key)
 {
    hashbase_t *base = g_handle_base;
-   snw_peer_t *item = 0;
+   snw_conn_t *item = 0;
    char *table = 0;
    int   value = 0;
    uint32_t      i;
@@ -134,7 +134,7 @@ peer_remove(uint32_t key)
 
    for ( i=0; i < base->hb_time; i++ ) {
       value = key % base->hb_base[i];
-      item = (snw_peer_t*)(table
+      item = (snw_conn_t*)(table
                    + i*base->hb_len*base->hb_objsize
                    + value*base->hb_objsize);
       if ( item->flowid == key ) {
