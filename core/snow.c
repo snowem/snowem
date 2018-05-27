@@ -112,7 +112,6 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
      memset(channel,0,sizeof(snw_channel_t));
      channel->id = channelid;
   }
-  channel->flowid = flowid; //TODO: no need to have flowid
   channel->type = channel_type;
        
   DEBUG(log,"create channel, channelid=%u", channelid);
@@ -135,6 +134,7 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
 
 int
 snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+/*
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
   snw_conn_t *conn = 0;
@@ -208,7 +208,7 @@ snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
     }
     json_object_put(notify);
   }
-
+*/
   return 0;
 }
 
@@ -229,122 +229,6 @@ snw_sig_call_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),peerid);
 
   return 0;
-}
-
-void
-snw_sig_add_subchannel(snw_channel_t *channel, uint32_t peerid, uint32_t channelid) {
-
-  if (!channel) return;
-
-  for (int i=0; i < SNW_SUBCHANNEL_NUM_MAX; i++) {
-    if (channel->subchannels[i].channelid == 0) {
-      channel->subchannels[i].peerid = peerid;
-      channel->subchannels[i].channelid = channelid;
-      break;
-    }
-  }
-
-  return;
-}
-
-void
-snw_sig_remove_subchannel(snw_channel_t *channel, uint32_t peerid, uint32_t channelid) {
-
-  if (!channel) return;
-
-  for (int i=0; i < SNW_SUBCHANNEL_NUM_MAX; i++) {
-    if (channel->subchannels[i].channelid == channelid
-        && channel->subchannels[i].peerid == peerid) {
-      channel->subchannels[i].peerid = 0;
-      channel->subchannels[i].channelid = 0;
-      break;
-    }
-  }
-
-  return;
-}
-
-int
-snw_sig_publish_subchannel(snw_context_t *ctx, uint32_t flowid,
-    snw_channel_t *channel) {
-  snw_log_t *log = ctx->log;
-  uint32_t channelid = 0;
-  int is_new = 0;
-  snw_channel_t *subchannel = 0;
-  json_object *req = 0;
-  const char *str = 0;
-
-  channelid = snw_set_getid(ctx->channel_mgr);
-  if (channelid == 0) {
-    ERROR(log, "can not create channel, flowid=%u", flowid);
-    return -1;
-  }
-
-  subchannel = snw_channel_get(ctx->channel_cache,channelid,&is_new);
-  if (channel == 0) {
-    ERROR(log, "can not create channel, flowid=%u", flowid);
-    return -2;
-  }
-  if (!is_new) {
-    ERROR(log,"reseting existing channel, channelid=%u",channelid);
-    memset(channel,0,sizeof(snw_channel_t));
-    subchannel->id = channelid;
-    return -3;
-  }
-  subchannel->flowid = channel->flowid;
-  //subchannel->peerid = channel->peerid;
-  subchannel->parentid = channel->id;
-  subchannel->type = SNW_LIVE_CHANNEL_TYPE;
-  snw_sig_add_subchannel(channel, flowid, channelid);
-
-  //inform ice component about new channel
-  //FIXME: this will generate resp msg to client, need a way to distinguish it from
-  //       normal case.
-  req = json_object_new_object();
-  if (!req) return -1;
-  json_object_object_add(req,"msgtype",json_object_new_int(SNW_ICE));
-  json_object_object_add(req,"api",json_object_new_int(SNW_ICE_CREATE));
-  json_object_object_add(req,"channelid",json_object_new_int(channelid));
-  str = snw_json_msg_to_string(req);
-  if (!str) {
-    json_object_put(req);
-    return -1;
-  }
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-
-  // publish subchannel
-  json_object_object_add(req,"api",json_object_new_int(SNW_ICE_PUBLISH));
-  str = snw_json_msg_to_string(req);
-  if (!str) {
-    json_object_put(req);
-    return -1;
-  }
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-
-  json_object_put(req);
-  return channelid;
-}
-
-void
-snw_core_channel_add_peer(snw_context_t *ctx,
-    uint32_t channelid, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  snw_channel_t *channel = 0;
-
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return;
-  }
-
-  if (channel->idx >= SNW_USER_NUM_MAX) {
-     ERROR(log, "channel info full, flowid=%u, channelid=%u", flowid, channelid);
-     return;
-  }
-  channel->peers[channel->idx] = flowid;
-  channel->idx++;
-
-  return;
 }
 
 void
@@ -467,9 +351,6 @@ snw_sig_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   uint32_t channelid = 0;
 
   //FIXME: do we need this?
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-  snw_core_channel_add_peer(ctx, channelid, flowid);
-
   DEBUG(log,"play req, flowid=%u, channelid=%u",
     flowid, channelid);
 
@@ -1065,19 +946,6 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
     ERROR(log, "unknown channel type: %u", channel_type);
     goto error;
   }
-
-  /*if (!strncmp(type_str,"broadcast",9)) {
-    channel_type = SNW_LIVE_CHANNEL_TYPE;
-  } else
-  if (!strncmp(type_str,"call",4)) {
-    channel_type = SNW_CALL_CHANNEL_TYPE;
-  } else
-  if (!strncmp(type_str,"conference",10)) {
-    channel_type = SNW_CONF_CHANNEL_TYPE;
-  } else {
-    ERROR(log, "unknow channel type: %s", type_str);
-    goto error;
-  }*/
 
   DEBUG(log,"create channel with name, name=%s",roomname);
   room = snw_roominfo_get(ctx->roominfo_cache,
