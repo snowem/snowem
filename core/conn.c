@@ -94,7 +94,6 @@ snw_conn_get(snw_hashbase_t *ctx, uint32_t flowid, int *is_new) {
    return so;
 }
 
-/*CACHE_SEARCH(ctx, sitem, snw_conn_t*);*/
 snw_conn_t*
 snw_conn_search(snw_hashbase_t *ctx, uint32_t flowid) {
    snw_conn_t sitem;
@@ -102,47 +101,15 @@ snw_conn_search(snw_hashbase_t *ctx, uint32_t flowid) {
    return (snw_conn_t*)snw_cache_search(ctx, &sitem);
 }
 
-/*CACHE_INSERT(ctx, sitem, snw_conn_t*);*/
 snw_conn_t*
 snw_conn_insert(snw_hashbase_t *ctx, snw_conn_t *sitem) {
    return (snw_conn_t*)snw_cache_insert(ctx, sitem);
 }
 
-/*CACHE_REMOVE(ctx, sitem, snw_conn_t*);*/
 int 
 snw_conn_remove(snw_hashbase_t *ctx, snw_conn_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }
 
-
-/*void
-conn_remove(uint32_t key)
-{
-   hashbase_t *base = g_handle_base;
-   snw_conn_t *item = 0;
-   char *table = 0;
-   int   value = 0;
-   uint32_t      i;
-
-   if ( base == NULL )
-      return;
-
-   if ( key == 0 )
-      return;
-
-   table = (char*)base->hb_cache;
-
-   for ( i=0; i < base->hb_time; i++ ) {
-      value = key % base->hb_base[i];
-      item = (snw_conn_t*)(table
-                   + i*base->hb_len*base->hb_objsize
-                   + value*base->hb_objsize);
-      if ( item->flowid == key ) {
-         item->flowid = 0;
-      }
-   }
-
-   return;
-}*/
 
 

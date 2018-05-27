@@ -82,7 +82,6 @@ snw_ice_channel_get(snw_ice_context_t *ctx, uint32_t id, int *is_new) {
    return so;
 }
 
-/*CACHE_SEARCH(ctx->channel_cache, sitem, snw_ice_channel_t*);*/
 snw_ice_channel_t*
 snw_ice_channel_search(snw_ice_context_t *ctx, uint32_t id) {
    snw_ice_channel_t sitem;
@@ -90,13 +89,11 @@ snw_ice_channel_search(snw_ice_context_t *ctx, uint32_t id) {
    return (snw_ice_channel_t*)snw_cache_search(ctx->channel_cache, &sitem);
 }
 
-/*CACHE_INSERT(ctx->channel_cache, sitem, snw_ice_channel_t*);*/
 snw_ice_channel_t*
 snw_ice_channel_insert(snw_ice_context_t *ctx, snw_ice_channel_t *sitem) {
    return (snw_ice_channel_t*)snw_cache_insert(ctx->channel_cache, sitem);
 }
 
-/*CACHE_REMOVE(ctx->channel_cache, sitem, snw_ice_channel_t*);*/
 int 
 snw_ice_channel_remove(snw_ice_context_t *ctx, snw_ice_channel_t *sitem) {
    return snw_cache_remove(ctx->channel_cache, sitem);
