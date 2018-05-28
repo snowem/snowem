@@ -1000,7 +1000,7 @@ snw_ice_session_setup(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
    session->streams_num = 0;
    session->control_mode = ICE_CONTROLLED_MODE;
    //TODO: get settings from client
-   SET_FLAG(session, WEBRTC_AUDIO | WEBRTC_VIDEO | WEBRTC_BUNDLE);
+   SET_FLAG(session, WEBRTC_AUDIO | WEBRTC_VIDEO | WEBRTC_BUNDLE | WEBRTC_RTCPMUX);
 
    DEBUG(log,"creating ice agent, flowid=%u, ice_lite=%u, control_mode=%u",
          session->flowid, ice_ctx->ice_lite_enabled, session->control_mode);
