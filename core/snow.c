@@ -39,10 +39,111 @@
 #include "websocket/websocket.h"
 
 int
-snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, uint32_t type, char *data, uint32_t len) {
+snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  const char *str = 0;
+  uint32_t streamid = 0;
+  uint32_t channelid = 0;
+  snw_channel_t *channel = 0;
+  snw_stream_t *stream = 0;
 
-   snw_shmmq_enqueue(ctx->ice_task->req_mq, 0, data, len, conn->flowid);
-   return 0;
+  streamid = snw_json_msg_get_int(jobj,"streamid");
+  channelid = snw_json_msg_get_int(jobj,"channelid");
+
+  if (streamid == (uint32_t)-1 || channelid == (uint32_t)-1)
+    return -1;
+
+  stream = snw_stream_search(ctx->stream_cache, streamid);
+  if (!stream) {
+    ERROR(log,"stream not found, flowid=%u, streamid=%u", flowid, streamid);
+    return -1;
+  }
+
+  channel = snw_channel_search(ctx->channel_cache,channelid);
+  if (!channel || stream->channelid != channelid) {
+    ERROR(log, "channel not found, channelid=%u", channelid);
+    return -1;
+  }
+
+  DEBUG(log,"publish req, flowid=%u, channelid=%u, type=%u",
+    flowid, channelid, channel->type);
+
+  if (channel->type == SNW_CONF_CHANNEL_TYPE) {
+    stream->type = STREAM_TYPE_PUBLISHER;
+
+    // inform ice component of new status
+    /*json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
+    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
+    str = snw_json_msg_to_string(jobj);
+    if (!str) return -1;
+    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);*/
+
+    // broadcast new stream
+    snw_sig_broadcast_new_stream(ctx, channel, streamid);
+    return 0;
+  }
+
+  if (channel->type != SNW_CALL_CHANNEL_TYPE
+      && channel->type != SNW_LIVE_CHANNEL_TYPE) {
+    ERROR(log, "unknow channel type, type=%u", channel->type);
+    return -2;
+  }
+
+  return 0;
+}
+
+int
+snw_core_ice_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  const char *str = 0;
+  uint32_t channelid = 0;
+
+  //FIXME: do we need this?
+  DEBUG(log,"play req, flowid=%u, channelid=%u",
+    flowid, channelid);
+
+  /*json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
+  json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PLAY));
+  str = snw_json_msg_to_string(jobj);
+  if (!str) return -1;
+  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);*/
+
+  return 0;
+}
+
+
+
+int
+snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
+  snw_log_t *log = ctx->log;
+  uint32_t flowid = conn->flowid;
+  uint32_t api = 0;
+  const char *str = 0;
+  int ret = -1;
+ 
+  api = snw_json_msg_get_int(jobj,"api");
+  switch(api) {
+     case SNW_ICE_PUBLISH:
+        ret = snw_core_ice_publish_msg(ctx,jobj,0,flowid);
+        break;
+     case SNW_SIG_PLAY:
+        ret = snw_core_ice_play_msg(ctx,jobj,0,flowid);
+        break;
+     default:
+        ret = 0;
+        break;
+  }
+
+  if (ret == 0) {
+    str = snw_json_msg_to_string(jobj);
+    if (!str) return -1;
+    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
+    //snw_shmmq_enqueue(ctx->ice_task->req_mq, 0, data, len, conn->flowid);
+  }
+
+  return 0;
 }
 
 int
@@ -134,81 +235,6 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
 
 int
 snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-/*
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  snw_conn_t *conn = 0;
-  snw_channel_t *channel = 0;
-  const char *str = 0;
-  const char *peer_type = 0;
-  uint32_t channelid = 0;
-  uint32_t peerid = 0;
-  int forward_to_ice = 0;
-   
-  peerid = snw_json_msg_get_int(jobj,"id");
-  conn = snw_conn_search(ctx->conn_cache,peerid);
-  if (!conn) {
-     ERROR(log, "peer not found, peerid=%u", peerid);
-     return -1;
-  }
-
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return -1;
-  }
-
-  peer_type = snw_json_msg_get_string(jobj,"peer_type");
-  if (!peer_type) return -1;
-
-  if (!strncmp(peer_type,"pub",3)) {
-    //conn->peer_type = STREAM_TYPE_PUBLISHER;
-    forward_to_ice = 1;
-  } else if (!strncmp(peer_type,"pla",3)) {
-    //conn->peer_type = STREAM_TYPE_PLAYER;
-    forward_to_ice = 1;
-  } else if (!strncmp(peer_type,"p2p",3)) {
-    //conn->peer_type = STREAM_TYPE_P2P;
-  } else {
-    ERROR(log,"unknown peer type, flowid=%u, peer_type=%s",flowid,peer_type);
-    //conn->peer_type = STREAM_TYPE_UNKNOWN;
-    return -2;
-  }
-
-  if (forward_to_ice) {
-     //TODO: remove ice_connect from client request
-  }
-
-  if (channel->flowid == 0) {
-    DEBUG(log,"first user in channel, flowid=%u, channelid=%u",
-      flowid, channel->id);
-    channel->flowid = flowid;
-  } else if (channel->flowid != flowid) {
-    json_object *notify;
-
-    DEBUG(log,"notify peer joined event, flowid=%u, channel_flowid=%u",
-      conn->flowid, channel->flowid);
-    notify = json_object_new_object();
-    if (!notify) {
-      ERROR(log,"falied to notify to ice, flowid=%u",conn->flowid);
-      return -1;
-    }
-    json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
-    json_object_object_add(notify,"remoteid",json_object_new_int(conn->flowid));
-    //json_object_object_add(notify,"peerid",json_object_new_int(channel->peerid));
-    json_object_object_add(notify,"channelid",json_object_new_int(channelid));
-    //json_object_object_add(notify,"is_p2p",
-    //    json_object_new_int(conn->peer_type == PEER_TYPE_P2P ? 1 : 0));
-
-    str = snw_json_msg_to_string(notify);
-    if (str) {
-       snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flowid);
-    }
-    json_object_put(notify);
-  }
-*/
   return 0;
 }
 
@@ -406,12 +432,12 @@ snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
 
   api = snw_json_msg_get_int(jobj,"api");
   switch(api) {
-     case SNW_SIG_AUTH:
+     /*case SNW_SIG_AUTH:
         snw_sig_auth_msg(ctx,jobj,0,flowid);
         break;
      case SNW_SIG_CREATE:
         snw_sig_create_msg(ctx,jobj,0,flowid);
-        break;
+        break;*/
      case SNW_SIG_CONNECT:
         snw_sig_connect_msg(ctx,jobj,0,flowid);
         break;
@@ -671,7 +697,7 @@ snw_core_process_msg(snw_context_t *ctx, snw_connection_t *conn, char *data, uin
 
    switch(msgtype) {
       case SNW_ICE:
-         snw_ice_handler(ctx,conn,msgtype,data,len);
+         snw_ice_handler(ctx,conn,jobj);
          break;
       case SNW_SIG:
          snw_sig_handler(ctx,conn,jobj);
