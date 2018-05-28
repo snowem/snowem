@@ -106,6 +106,15 @@ snw_channel_remove(snw_hashbase_t *ctx, snw_channel_t *sitem) {
 }
 
 void
+snw_list_reset(snw_list_t *l) {
+  if (!l) return;
+
+  l->idx = 0;
+
+  return;
+}
+
+void
 snw_list_add_item(snw_list_t *l, uint32_t id) {
   if (!l) return;
 

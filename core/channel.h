@@ -60,6 +60,9 @@ struct snw_list {
 };
 
 void
+snw_list_reset(snw_list_t *l);
+
+void
 snw_list_add_item(snw_list_t *l, uint32_t id);
 
 void
@@ -70,9 +73,7 @@ struct snw_channel {
    uint32_t id;       //channelid
    uint32_t type;     //channel type
    char     name[ROOM_NAME_LEN];
-
-   int        lastidx;
-   uint32_t   flows[SNW_USER_NUM_MAX];
+   snw_list_t flows;   //list of flow ids
    snw_list_t streams; //list of stream ids
 };
 
