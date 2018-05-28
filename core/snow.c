@@ -238,6 +238,18 @@ snw_core_channel_remove_subscriber(snw_context_t *ctx,
   return;
 }
 
+void
+snw_sig_broadcast_net_msg(snw_context_t *ctx, snw_channel_t *channel, 
+    const char *str, int len) {
+  int i = 0;
+
+  for (i=0; i < channel->flows.idx; i++) {
+    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,len,channel->flows.list[i]);
+  }
+
+  return;
+}
+
 int
 snw_sig_broadcast_new_stream(snw_context_t *ctx,
      snw_channel_t *channel, uint32_t streamid) {
@@ -246,7 +258,6 @@ snw_sig_broadcast_new_stream(snw_context_t *ctx,
   json_object *jarray = 0;
   json_object *jitem = 0;
   const char *str = 0;
-  int i = 0;
 
   jobj = json_object_new_object();
   if (!jobj) {
@@ -277,11 +288,7 @@ snw_sig_broadcast_new_stream(snw_context_t *ctx,
   }
  
   DEBUG(log,"broadcast new stream, streamid=%u, str=%s", streamid, str);
-
-  for (i=0; i < channel->lastidx; i++) {
-    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flows[i]);
-  }
- 
+  snw_sig_broadcast_net_msg(ctx,channel,str,strlen(str));
   json_object_put(jobj);
 
   return 0;
@@ -432,37 +439,16 @@ snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
 }
 
 void
-snw_channel_delete_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
-  int i = 0;
-
-  for (i=0; i < channel->lastidx; i++) {
-    if (channel->flows[i] == flowid)
-      break;
-  }
-
-  if (i >= channel->lastidx)
-    return;
-
-  channel->flows[i] = channel->flows[channel->lastidx];
-  channel->lastidx--;
-
-  return;
-}
-
-void
 snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   json_object *notify = 0;
   const char *str = 0;
-  int i = 0;
 
   if (!channel 
-      || channel->lastidx >= SNW_USER_NUM_MAX) {
+      || channel->flows.idx >= SNW_USER_NUM_MAX) {
     WARN(log, "channel is full, id=%d", channel->id);
     return;
   }
-
-  channel->flows[channel->lastidx] = flowid;
 
   if (channel->type == SNW_CALL_CHANNEL_TYPE) {
 
@@ -470,7 +456,6 @@ snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid
     notify = json_object_new_object();
     if (!notify) {
       ERROR(log,"falied to notify to ice, flowid=%u",flowid);
-      channel->flows[channel->lastidx] = 0; //reset
       return;
     }
 
@@ -480,17 +465,14 @@ snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid
     str = snw_json_msg_to_string(notify);
     if (str) {
       json_object_put(notify);
-      channel->flows[channel->lastidx] = 0; //reset
       return;
     }
  
-    for (i=0; i < channel->lastidx; i++) {
-      snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flows[i]);
-    }
-    channel->lastidx++;
+    snw_sig_broadcast_net_msg(ctx,channel,str,strlen(str));
+    snw_list_add_item(&channel->flows,flowid);
     json_object_put(notify);
   } else {
-    channel->lastidx++;
+    snw_list_add_item(&channel->flows,flowid);
   }
 
   return;
@@ -564,27 +546,6 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
   json_object_object_add(jobj,"streams",streams);
   json_object_object_add(jobj,"rc",json_object_new_int(0));
   json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
-
-  /*  subchannels = json_object_new_array();
-    if (!subchannels) return -1;
-    for (int i=0; i < SNW_SUBCHANNEL_NUM_MAX; i++) {
-      if (channel->subchannels[i].channelid != 0) {
-        json_object *item = json_object_new_object();
-        if (!item) {
-          json_object_put(subchannels);
-          return -1;
-        }
-
-        DEBUG(log,"subchannel info: pid=%u, cid=%u", 
-          channel->subchannels[i].peerid, channel->subchannels[i].channelid);
-        json_object_object_add(item,"peerid",json_object_new_int(channel->subchannels[i].peerid));
-        json_object_object_add(item,"subchannelid",json_object_new_int(channel->subchannels[i].channelid));
-        json_object_array_add(subchannels,item);
-      }
-    }
-    json_object_object_add(jobj,"subchannels",subchannels);
-  */
-
   str = snw_json_msg_to_string(jobj);
   if (str) {
     DEBUG(log,"connect msg send result, str=%s",str);
@@ -853,12 +814,11 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *connection) {
        return -2;
      }
 
-     snw_channel_delete_flow(ctx,channel,flowid);
-     for (i=0; i < channel->lastidx; i++) {
-       snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),channel->flows[i]);
-     }
+     snw_list_remove_item(&channel->flows,flowid);
+     snw_sig_broadcast_net_msg(ctx,channel,str,strlen(str));
+
    } else {
-     snw_channel_delete_flow(ctx,channel,flowid);
+     snw_list_remove_item(&channel->flows,flowid);
      if (jarray) json_object_put(jarray);
    }
 
