@@ -84,7 +84,7 @@ snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowi
     return 0;
   }
 
-  if (channel->type != SNW_CALL_CHANNEL_TYPE
+  if (channel->type != SNW_P2P_CHANNEL_TYPE
       && channel->type != SNW_LIVE_CHANNEL_TYPE) {
     ERROR(log, "unknow channel type, type=%u", channel->type);
     return -2;
@@ -186,7 +186,7 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
     channel_type = SNW_LIVE_CHANNEL_TYPE;
   } else 
   if (!strncmp(str,"call",4)) {
-    channel_type = SNW_CALL_CHANNEL_TYPE;
+    channel_type = SNW_P2P_CHANNEL_TYPE;
   } else 
   if (!strncmp(str,"conference",10)) {
     channel_type = SNW_CONF_CHANNEL_TYPE;
@@ -366,7 +366,7 @@ snw_sig_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
     return 0;
   }
 
-  if (channel->type != SNW_CALL_CHANNEL_TYPE
+  if (channel->type != SNW_P2P_CHANNEL_TYPE
       && channel->type != SNW_LIVE_CHANNEL_TYPE) {
     ERROR(log, "unknow channel type, type=%u", channel->type);
     return -2;
@@ -475,32 +475,7 @@ snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid
     WARN(log, "channel is full, id=%d", channel->id);
     return;
   }
-
-  if (channel->type == SNW_CALL_CHANNEL_TYPE) {
-
-    DEBUG(log,"notify peer joined event, flowid=%u, id=%u", flowid, channel->id);
-    notify = json_object_new_object();
-    if (!notify) {
-      ERROR(log,"falied to notify to ice, flowid=%u",flowid);
-      return;
-    }
-
-    json_object_object_add(notify,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(notify,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
-    json_object_object_add(notify,"channelid",json_object_new_int(channel->id));
-    str = snw_json_msg_to_string(notify);
-    if (str) {
-      json_object_put(notify);
-      return;
-    }
- 
-    snw_sig_broadcast_net_msg(ctx,channel,str,strlen(str));
-    snw_list_add_item(&channel->flows,flowid);
-    json_object_put(notify);
-  } else {
-    snw_list_add_item(&channel->flows,flowid);
-  }
-
+  snw_list_add_item(&channel->flows,flowid);
   return;
 }
 
@@ -530,12 +505,51 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
   }
   conn->channelid = channelid;
 
-  DEBUG(log, "connect msg, channelid=%u, flowid=%u, idx=%u", 
-      channelid, flowid, channel->streams.idx);
+  DEBUG(log, "connect msg, channelid=%u, type=%u, flowid=%u, idx=%u", 
+      channelid, channel->type, flowid, channel->streams.idx);
 
-  snw_channel_add_flow(ctx,channel,flowid);
 
+  // in p2p case: notify other stream abt new stream
+  if (channel->type == SNW_P2P_CHANNEL_TYPE) {
+    int i = 0;
+    if (channel->flows.idx >= 2) {
+      ERROR(log,"maximum num of users");
+      return -1;
+    }
+    snw_channel_add_flow(ctx,channel,flowid);
+
+    for (i=0; i<channel->flows.idx; i++) {
+      if (channel->flows.list[i] != flowid) {
+        json_object *msg;
+        msg = json_object_new_object();
+        if (!msg) {
+          return -1;
+        }
+        json_object_object_add(msg,"msgtype",json_object_new_int(SNW_EVENT));
+        json_object_object_add(msg,"api",json_object_new_int(SNW_EVENT_JOINED_STREAM));
+        json_object_object_add(msg,"channelid",json_object_new_int(channel->id));
+        json_object_object_add(msg,"flowid",json_object_new_int(flowid));
+
+        str = snw_json_msg_to_string(msg);
+        if (str) {
+          DEBUG(log,"send joined stream event, str=%s",str);
+          snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
+        }
+        json_object_put(msg);
+      }
+    }
+    return 0;
+  }
+
+  // in live case
+  if (channel->type == SNW_P2P_CHANNEL_TYPE) {
+    //TODO: impl live_type semantic 
+    return 0;
+  }
+
+  // in conference case
   // notify all published streams to this new connection
+  snw_channel_add_flow(ctx,channel,flowid);
   if (channel->streams.idx>0) {
     int i = 0;
 
@@ -927,7 +941,7 @@ snw_process_http_create_req(snw_context_t *ctx, void *data, uint32_t len, uint32
   }
 
   if ( !((channel_type == SNW_LIVE_CHANNEL_TYPE)
-       || (channel_type == SNW_CALL_CHANNEL_TYPE)
+       || (channel_type == SNW_P2P_CHANNEL_TYPE)
        || (channel_type == SNW_CONF_CHANNEL_TYPE)) ) {
     ERROR(log, "unknown channel type: %u", channel_type);
     goto error;

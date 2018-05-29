@@ -40,7 +40,7 @@ typedef LIST_HEAD(peerlist_head, snw_flow) peerlist_head_t;
 /* Channel type */
 enum {
    SNW_CONF_CHANNEL_TYPE = 0,
-   SNW_CALL_CHANNEL_TYPE = 1,
+   SNW_P2P_CHANNEL_TYPE = 1,
    SNW_LIVE_CHANNEL_TYPE = 2,
 };
 
