@@ -128,12 +128,13 @@ void
 snw_list_remove_item(snw_list_t *l, uint32_t id) {
   int i = 0;
 
-  if (!l) return;
+  if (!l || l->idx == 0) return;
   
   for (i=0; i < l->idx; i++) {
     if (l->list[i] == id)
       break;
   }
+
   if (l->idx <= i) return;
   l->list[i] = l->list[l->idx];
   l->idx--;
