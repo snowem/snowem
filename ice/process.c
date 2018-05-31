@@ -1585,8 +1585,8 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, json_object *candidate
       return 0;
    }
 
-   mid = snw_json_msg_get_string(candidate,"id");
-   mline = snw_json_msg_get_int(candidate,"label");
+   mid = snw_json_msg_get_string(candidate,"sdpMid");
+   mline = snw_json_msg_get_int(candidate,"sdpMLineIndex");
    rc = snw_json_msg_get_string(candidate,"candidate");
    if (!mid || mline == -1 || !rc)
      return -1;

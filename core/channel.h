@@ -59,6 +59,15 @@ struct snw_list {
   uint32_t list[MAX_LIST_NUM];
 };
 
+#define DEBUG_LIST(l__)\
+{\
+  int i = 0;\
+  DEBUG(log,"idx %u", (l__)->idx);\
+  for (i=0; i<(l__)->idx; i++) {\
+    DEBUG(log,"item %u: %u", i, (l__)->list[i]);\
+  }\
+}
+
 void
 snw_list_reset(snw_list_t *l);
 
@@ -72,6 +81,7 @@ typedef struct snw_channel snw_channel_t;
 struct snw_channel {
    uint32_t id;       //channelid
    uint32_t type;     //channel type
+   uint32_t on_call;
    char     name[ROOM_NAME_LEN];
    snw_list_t flows;   //list of flow ids
    snw_list_t streams; //list of stream ids
