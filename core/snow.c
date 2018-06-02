@@ -307,6 +307,7 @@ snw_sig_broadcast_new_stream(snw_context_t *ctx,
 
   json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_EVENT));
   json_object_object_add(jobj,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
+  json_object_object_add(jobj,"type",json_object_new_int(channel->type));
   json_object_object_add(jobj,"channelid",json_object_new_int(channel->id));
 
   jarray = json_object_new_array();
@@ -550,7 +551,8 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
       return -1;
     }
     json_object_object_add(msg,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(msg,"api",json_object_new_int(SNW_EVENT_JOINED_STREAM));
+    json_object_object_add(msg,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
+    json_object_object_add(msg,"type",json_object_new_int(channel->type));
     json_object_object_add(msg,"channelid",json_object_new_int(channel->id));
 
     json_object_object_add(msg,"flowid",json_object_new_int(flowid));
@@ -612,6 +614,7 @@ snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid
 
       DEBUG(log,"connect msg insert stream, streamid=%u",stream->id);
       json_object_object_add(item,"streamid",json_object_new_int(stream->id));
+      json_object_object_add(item,"type",json_object_new_int(stream->type));
       json_object_array_add(streams,item);
     }
   }
