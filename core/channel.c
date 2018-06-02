@@ -136,8 +136,10 @@ snw_list_remove_item(snw_list_t *l, uint32_t id) {
   }
 
   if (l->idx <= i) return;
-  l->list[i] = l->list[l->idx];
+
   l->idx--;
+  l->list[i] = l->list[l->idx];
+  l->list[l->idx] = 0;
 
   return;
 }
