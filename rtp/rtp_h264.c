@@ -196,7 +196,7 @@ snw_rtp_h264_handle_pkg_in(void *data, char *buf, int buflen) {
 
 #ifdef ENABLE_RTMP
    if (!ctx->rtmp_ctx) {
-      ctx->rtmp_ctx = snw_rtmp_ctx_new("rtmp://49.213.76.92:1935/live/livestream");
+      ctx->rtmp_ctx = snw_rtmp_ctx_new("rtmp://rtmp-server:1935/live/livestream");
       if (!ctx->rtmp_ctx) {
          ERROR(log, "failed to allocate rtmp ctx");
          return -1;
