@@ -74,6 +74,22 @@ Note: one may find configuration sample file at [snowem.conf](https://github.com
 ```
 snowem <path-to>/snowem.conf
 ```
+## A Quick Demo
+Assume snowem server runs on ip address x.y.z.t. Login to that server, if you do not have nodejs and express framework, install them:
+```
+curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+Download demp application from [javascript sdk](https://github.com/snowem/sdkjs)and modify js/app.js to point to correct Snowem server by setting 'wss_ip' to x.y.z.t.
+
+```
+git clone https://github.com/snowem/sdkjs.git
+cd sdkjs
+npm install
+node index.js
+```
+Open chrome browser on https://x.y.z.t:8000. Enjoy the demo.
 
 ## A Quick Start
 
