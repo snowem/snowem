@@ -29,15 +29,16 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
-#include "cache.h"
-#include "channel_mgr.h"
-#include "flow.h"
+#include "core/cache.h"
+#include "core/setmgr.h"
+#include "core/flow.h"
 #include "ice/ice.h"
-#include "mempool.h"
-#include "mq.h"
-#include "module.h"
-#include "task.h"
-#include "types.h"
+#include "core/mempool.h"
+#include "core/mq.h"
+#include "core/module.h"
+#include "core/stream.h"
+#include "core/task.h"
+#include "core/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -93,11 +94,13 @@ struct snw_context {
 
    /* caches */
    snw_hashbase_t *channel_cache;
-   snw_hashbase_t *peer_cache;
+   snw_hashbase_t *conn_cache;
    snw_hashbase_t *roominfo_cache;
+   snw_hashbase_t *stream_cache;
 
    /* channel set */
    snw_set_t      *channel_mgr;
+   snw_set_t      *stream_mgr;
 
    /* mempool for fixed-size objects */
    snw_mempool_t *rcvvars_mp;

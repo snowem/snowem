@@ -15,8 +15,9 @@
  *
  */
 
-#include <stdio.h>
+#include <assert.h>
 #include <bsd/bsd.h>
+#include <stdio.h>
 
 #include "core/core.h"
 #include "core/log.h"
@@ -159,7 +160,7 @@ ice_rtp_established(snw_ice_session_t *session) {
    ice_ctx = session->ice_ctx;
    log = ice_ctx->log;
 
-   DEBUG(log, "ice connection established, flowid=%u", session->flowid);
+   DEBUG(log, "ice connection established, streamid=%u", session->streamid);
    if ( IS_FLAG(session,ICE_SUBSCRIBER) ) {
       //FIXME: request fir
       /*root["cmd"] = SNW_ICE;
@@ -257,8 +258,10 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
   
    snw_ice_sdp_init(ice_ctx);
    snw_ice_session_init(ice_ctx);
-   snw_ice_channel_init(ice_ctx);
-   snw_stream_mempool_init(ice_ctx);
+   if (snw_ice_channel_init(ice_ctx) < 0) {
+     assert(0);
+   }
+   snw_ice_stream_mempool_init(ice_ctx);
    snw_component_mempool_init(ice_ctx);
 
    ice_ctx->rtcpmux_enabled = 0; 

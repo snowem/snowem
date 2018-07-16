@@ -19,6 +19,10 @@ extern "C" {
 #define CORE_ROOMINFO_HASHTIME  10
 #define CORE_ROOMINFO_HASHLEN   100
 
+#define CORE_STREAM_SHM_KEY   0x081004
+#define CORE_STREAM_HASHTIME  10
+#define CORE_STREAM_HASHLEN   100
+
 #define ROOM_NAME_LEN 64
 
 typedef struct snw_log snw_log_t;
@@ -67,6 +71,20 @@ typedef struct snw_module snw_module_t;
 
 #define MAX_BUFFER_SIZE 16*1024*1024
 #define MAX_HTTP_BUFFER_SIZE 4*1024*1024
+
+enum {
+   STREAM_TYPE_UNKNOWN = 0,
+   STREAM_TYPE_PUBLISHER = 1,
+   STREAM_TYPE_SUBSCRIBER = 2,
+   STREAM_TYPE_P2P = 3,
+};
+
+enum {
+   STREAM_STATE_ERROR = 0,
+   STREAM_STATE_OK = 1,
+};
+
+
 
 #ifdef __cplusplus
 }

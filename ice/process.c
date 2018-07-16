@@ -45,7 +45,9 @@ void ice_send_candidate(snw_ice_session_t *session,
    if (!jobj || !candobj) return;
    json_object_object_add(jobj, "msgtype", json_object_new_int(SNW_ICE));
    json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_CANDIDATE));
-   json_object_object_add(jobj, "roomid", json_object_new_int(0));
+   json_object_object_add(jobj, "streamid", json_object_new_int(session->streamid));
+   json_object_object_add(jobj, "channelid", json_object_new_int(session->channelid));
+   json_object_object_add(jobj, "flowid", json_object_new_int(session->flowid));
    json_object_object_add(jobj, "callid", json_object_new_string("callid"));
    if (video) {
      json_object_object_add(candobj, "label", json_object_new_int(1));
@@ -84,7 +86,7 @@ snw_ice_send_local_candidate(snw_ice_session_t *session, int video, uint32_t str
    log = session->ice_ctx->log;
 
    agent = session->agent;
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if(!stream) {
       ERROR(log, "stream not found, sid=%d", stream_id);
       return;
@@ -198,18 +200,17 @@ void
 snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    json_object *jobj = (json_object*)data;
-   json_object *jchannel = 0;
    snw_ice_channel_t *channel = 0;
    uint32_t channelid = 0;
    int is_new = 0;
 
+   //TODO: this function never be called.
    if (!jobj) return;
 
-   json_object_object_get_ex(jobj,"channelid",&jchannel);
+   channelid = snw_json_msg_get_int(jobj,"channelid");
+   DEBUG(log,"create ice channel, flowid=%u, channelid=%u", 
+            flowid, channelid);
 
-   if (!jchannel || json_object_get_type(jchannel) != json_type_int)
-     return;
-   channelid = json_object_get_int(jchannel);
    channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,channelid,&is_new);
    if (!channel || !is_new) {
       ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
@@ -218,6 +219,8 @@ snw_ice_create_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flo
       return;
    }
 
+   DEBUG(log,"create ice channel, flowid=%u, channelid=%u", 
+            flowid, channelid);
    //TODO: not useful for frontend?
    json_object_object_add(jobj,"id",json_object_new_int(flowid));
    json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
@@ -258,7 +261,7 @@ snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *us
    DEBUG(log, "gathering done, stream=%d, cdone=%u, streams_num=%u",
          stream_id, session->streams_gathering_done, session->streams_num);
 
-   snw_ice_stream_t *stream = snw_stream_find(&session->streams, stream_id);
+   snw_ice_stream_t *stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%d", stream_id);
       return;
@@ -278,6 +281,9 @@ snw_ice_cb_candidate_gathering_done(agent_t *agent, uint32_t stream_id, void *us
       if (!jobj || !sdpobj) return;
       json_object_object_add(jobj, "msgtype", json_object_new_int(SNW_ICE));
       json_object_object_add(jobj, "api", json_object_new_int(SNW_ICE_SDP));
+      json_object_object_add(jobj, "streamid", json_object_new_int(session->streamid));
+      json_object_object_add(jobj, "channelid", json_object_new_int(session->channelid));
+      json_object_object_add(jobj, "flowid", json_object_new_int(session->flowid));
       json_object_object_add(sdpobj, "type", json_object_new_string("offer"));
       json_object_object_add(sdpobj, "sdp", json_object_new_string(session->local_sdp));
       json_object_object_add(jobj, "sdp", sdpobj);
@@ -317,7 +323,7 @@ snw_ice_cb_new_selected_pair(agent_t *agent, uint32_t stream_id,
 
    DEBUG(log, "new selected pair, cid=%d, sid=%d, local=%s, remote=%s",
                 component_id, stream_id, local, remote);
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -360,7 +366,7 @@ snw_ice_cb_component_state_changed(agent_t *agent,
    DEBUG(log, "component state changed, cid=%u, sid=%u, state=%d",
          component_id, stream_id, state);
 
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -411,7 +417,7 @@ snw_ice_cb_new_remote_candidate(agent_t *agent, uint32_t stream_id,
       return;
    }
 
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -912,7 +918,7 @@ snw_ice_create_media_stream(snw_ice_session_t *session, int video) {
    log = session->ice_ctx->log;
 
    stream_id = ice_agent_add_stream(session->agent, IS_FLAG(session, WEBRTC_RTCPMUX) ? 1 : 2);
-   stream = snw_stream_allocate(session->ice_ctx);
+   stream = snw_ice_stream_allocate(session->ice_ctx);
    if (stream == 0) {
       return -2;
    }
@@ -923,7 +929,7 @@ snw_ice_create_media_stream(snw_ice_session_t *session, int video) {
    stream->is_video = video;
    stream->dtls_type = DTLS_TYPE_ACTPASS;
    LIST_INIT(&stream->components);
-   snw_stream_insert(&session->streams,stream);
+   snw_ice_stream_insert(&session->streams,stream);
       
    if (video) {
       session->video_stream = stream;
@@ -994,7 +1000,7 @@ snw_ice_session_setup(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
    session->streams_num = 0;
    session->control_mode = ICE_CONTROLLED_MODE;
    //TODO: get settings from client
-   SET_FLAG(session, WEBRTC_AUDIO | WEBRTC_VIDEO | WEBRTC_BUNDLE);
+   SET_FLAG(session, WEBRTC_AUDIO | WEBRTC_VIDEO | WEBRTC_BUNDLE | WEBRTC_RTCPMUX);
 
    DEBUG(log,"creating ice agent, flowid=%u, ice_lite=%u, control_mode=%u",
          session->flowid, ice_ctx->ice_lite_enabled, session->control_mode);
@@ -1028,8 +1034,7 @@ snw_ice_session_setup(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
 }
 
 static int
-snw_ice_offer_sdp(snw_ice_context_t *ice_ctx, 
-      snw_ice_session_t *session, uint32_t flowid) {
+snw_ice_offer_sdp(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
    snw_log_t *log;
    int ret = 0;
 
@@ -1049,20 +1054,23 @@ void
 snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
+   snw_ice_channel_t *channel;
    json_object *jobj = (json_object*)data;
-   const char* peer_type;
+   uint32_t stream_type = 0;
    uint32_t channelid = 0;
+   uint32_t streamid = 0;
    int is_new = 0;
    
    if (!jobj) return;
 
    channelid = snw_json_msg_get_int(jobj,"channelid");
-   peer_type = snw_json_msg_get_string(jobj,"peer_type");
-   if (channelid == (uint32_t)-1 || peer_type == 0)
+   stream_type = snw_json_msg_get_int(jobj,"stream_type");
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (channelid == (uint32_t)-1 || stream_type == (uint32_t)-1 || streamid == (uint32_t)-1)
      return;
  
-   DEBUG(log,"connect msg, flowid=%u", flowid);
-   session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,flowid,&is_new);
+   DEBUG(log,"connect msg, streamid=%u", streamid);
+   session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,streamid,&is_new);
    if (!session) {
       ERROR(log,"failed to get session, flowid=%u",flowid);
       return;
@@ -1070,15 +1078,25 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
 
    if (!is_new) {
       WARN(log,"old session, flowid=%u, ice_ctx=%p",session->flowid, session->ice_ctx);
-      snw_ice_offer_sdp(ice_ctx,session,flowid);
+      snw_ice_offer_sdp(ice_ctx,session);
       return;
    }
 
-   DEBUG(log,"init new session, channelid=%u, peer_type=%s, flowid=%u", 
-         channelid, peer_type, session->flowid);
+   is_new = 0;
+   channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,streamid,&is_new); //TODO: used to use channelid
+   if (!channel || !is_new) {
+      ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
+            flowid, is_new);
+      snw_ice_send_msg_to_core(ice_ctx,jobj,flowid,-1);
+      return;
+   }
+
+   DEBUG(log,"init new session, channelid=%u, stream_type=%u, flowid=%u", 
+         channelid, stream_type, session->flowid);
    
-   session->channelid = 0;
-   session->channel = 0;
+   session->channelid = channelid;
+   session->flowid = flowid;
+   session->channel = channel;
    session->control_mode = ICE_CONTROLLED_MODE;
    session->flags = 0;
    snw_rtp_ctx_init(&session->rtp_ctx);
@@ -1087,19 +1105,15 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    session->rtp_ctx.send_pkt = send_pkt_callback;
    LIST_INIT(&session->streams);
 
-   if (!strncmp(peer_type,"pub",3)) {
-      session->peer_type = PEER_TYPE_PUBLISHER;
-   } else if (!strncmp(peer_type,"pla",3)) {
-      session->peer_type = PEER_TYPE_PLAYER;
-   } else if (!strncmp(peer_type,"p2p",3)) {
-      session->peer_type = PEER_TYPE_P2P;
-   } else {
-      ERROR(log,"unknown peer type, flowid=%u, peer_type=%s",flowid,peer_type);
-      session->peer_type = PEER_TYPE_UNKNOWN;
+   if ( !(stream_type == STREAM_TYPE_PUBLISHER
+        || stream_type == STREAM_TYPE_SUBSCRIBER
+        || stream_type == STREAM_TYPE_P2P) ) {
+      ERROR(log,"unknown peer type, flowid=%u, stream_type=%s", flowid, stream_type);
+      session->stream_type = STREAM_TYPE_UNKNOWN;
       return;
    }
-
-   snw_ice_offer_sdp(ice_ctx,session,flowid);
+   session->stream_type = stream_type;
+   snw_ice_offer_sdp(ice_ctx,session);
 
    return;
 }
@@ -1164,7 +1178,7 @@ ice_stream_cleanup(snw_ice_context_t *ice_ctx, snw_ice_stream_t *stream) {
       ice_component_free(ice_ctx, &stream->components, stream->rtcp_component);
    }
 
-   snw_stream_deallocate(ice_ctx,stream);
+   snw_ice_stream_deallocate(ice_ctx,stream);
 
    return;
 }
@@ -1215,10 +1229,11 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
       free(session->remote_sdp);
       session->remote_sdp = 0;
    }
-
-   snw_channel_remove_subscriber(ice_ctx, session->live_channelid, 
-        session->flowid);
-   session->live_channelid = 0;
+   
+   if (session->publishid != 0) {
+      snw_channel_remove_subscriber(ice_ctx, session->publishid, 
+        session->streamid);
+   }
 
    //FIXME: free streams & components
    if (LIST_EMPTY(&session->streams))
@@ -1230,6 +1245,9 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
    }
 
    CLEAR_FLAG(session, WEBRTC_READY);
+
+   snw_ice_session_remove(ice_ctx,session);
+
    return;
 }
 
@@ -1237,15 +1255,25 @@ void
 snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
-   
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx,flowid);
+   json_object *jobj = (json_object*)data;
+   uint32_t streamid = 0;
+
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
+
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (streamid == (uint32_t)-1) return;
+
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx,streamid);
    if (!session) {
       ERROR(log,"session not found, flowid=%u",flowid);
       return;
    }
 
-   DEBUG(log,"stop session, flowid=%u",flowid);
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
    snw_ice_session_free(ice_ctx,session);
+
    return;
 }
 
@@ -1341,7 +1369,7 @@ ice_setup_remote_candidates(snw_ice_session_t *session, uint32_t stream_id, uint
       return;
    log = session->ice_ctx->log;
 
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if (!stream || LIST_EMPTY(&stream->components)) {
       ERROR(log, "stream not found, sid=%d, cid=%d", stream_id, component_id);
       return;
@@ -1391,9 +1419,16 @@ snw_ice_sdp_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid
    ice_sdp_attr_t sdp_attr;
    const char *jsep_type = 0;
    const char *jsep_sdp = 0;
+   uint32_t streamid = 0;
    int ret = 0;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (streamid == (uint32_t)-1) {
+     ERROR(log, "streamid not found");
+     return;
+   }
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (session == 0) {
       ERROR(log, "failed to malloc");
       return;
@@ -1550,8 +1585,8 @@ snw_ice_process_new_candidate(snw_ice_session_t *session, json_object *candidate
       return 0;
    }
 
-   mid = snw_json_msg_get_string(candidate,"id");
-   mline = snw_json_msg_get_int(candidate,"label");
+   mid = snw_json_msg_get_string(candidate,"sdpMid");
+   mline = snw_json_msg_get_int(candidate,"sdpMLineIndex");
    rc = snw_json_msg_get_string(candidate,"candidate");
    if (!mid || mline == -1 || !rc)
      return -1;
@@ -1581,9 +1616,16 @@ snw_ice_candidate_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t 
    snw_ice_session_t *session;
    json_object *jobj = (json_object*)data;
    json_object *cand_obj = 0;
+   uint32_t streamid = 0;
    int ret = -1;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (streamid == (uint32_t)-1) {
+     ERROR(log, "streamid not found");
+     return;
+   }
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (!session) {
       DEBUG(log, "session not found, flowid=%u", flowid);
       return;
@@ -1615,49 +1657,65 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    snw_log_t *log = 0;
    snw_ice_session_t *session = 0;
    json_object *jobj = (json_object*)data;
-   uint32_t channelid;
-   snw_ice_channel_t *channel = 0;
+   uint32_t channelid = 0;
+   uint32_t streamid = 0;
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
-   if (!session) return;
+   DEBUG(log, "channel is publishing, flowid=%u, channelid=%u", 
+         flowid, channelid);
 
    channelid = snw_json_msg_get_int(jobj,"channelid");
-   if (channelid == (uint32_t)-1) return;
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   if (channelid == (uint32_t)-1 || streamid == (uint32_t)-1) return;
 
    DEBUG(log, "channel is publishing, flowid=%u, channelid=%u", 
          flowid, channelid);
-   session->channelid = channelid;
-   channel = (snw_ice_channel_t*)snw_ice_channel_search(ice_ctx,channelid);
-   if (!channel) {
-      ERROR(log,"channel not found, flowid=%u, channleid=%u",flowid,channelid);
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
+   if (!session) return;
+
+   if (session->channelid != channelid) {
+      ERROR(log,"channelid not match, flowid=%u, channleid=%u, session_channelid=%u ",
+          flowid,channelid, session->channelid);
       return;
    }
-   session->channel = channel;
 
+   DEBUG(log, "channel is publishing, flowid=%u, streamid=%u, channelid=%u", 
+         flowid, streamid, channelid);
    SET_FLAG(session,ICE_PUBLISHER);
    return;
 }
 
 void
 snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
+   snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session = 0;
    json_object *jobj = (json_object*)data;
    uint32_t channelid = 0;
+   uint32_t streamid = 0;
+   uint32_t publishid = 0;
 
    if (!ice_ctx) return;
 
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, flowid);
+   channelid = snw_json_msg_get_int(jobj,"channelid");
+   streamid = snw_json_msg_get_int(jobj,"streamid");
+   publishid = snw_json_msg_get_int(jobj,"publishid");
+   if (channelid == (uint32_t)-1 
+       || streamid == (uint32_t)-1
+       || publishid == (uint32_t)-1) {
+     DEBUG(log, "play a stream, flowid=%u, channelid=%u, streamid=%u, publishid=%u", 
+         flowid, channelid, streamid, publishid);
+     return;
+   }
+
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (!session) return;
    SET_FLAG(session,ICE_SUBSCRIBER);
 
-   channelid = snw_json_msg_get_int(jobj,"channelid");
-   if (channelid == (uint32_t)-1) return;
-
-   snw_channel_add_subscriber(ice_ctx, channelid, flowid);
-   session->live_channelid = channelid;
+   snw_channel_add_subscriber(ice_ctx, publishid, streamid);
+   session->publishid = publishid;
   
    return;
 }

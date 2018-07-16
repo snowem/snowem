@@ -185,9 +185,9 @@ snw_ice_sdp_add_media_application(snw_ice_session_t *session, int video, char* s
    char buffer[512];
 
    /* sendrecv & rtcp-mux */
-   if (session->peer_type == PEER_TYPE_PUBLISHER) {
+   if (session->stream_type == STREAM_TYPE_PUBLISHER) {
      strncat(sdp, "a=recvonly\r\n", ICE_BUFSIZE);
-   } else if (session->peer_type == PEER_TYPE_PLAYER) {
+   } else if (session->stream_type == STREAM_TYPE_SUBSCRIBER) {
      strncat(sdp, "a=sendonly\r\n", ICE_BUFSIZE);
    } else {
      //TODO: should check more?
@@ -237,9 +237,9 @@ snw_ice_sdp_add_credentials(snw_ice_session_t *session, int video, char* sdp) {
                    session->audio_stream->id : 
                    session->video_stream->id;
 
-      stream = snw_stream_find(&session->streams, id);
+      stream = snw_ice_stream_find(&session->streams, id);
    } else {
-      stream = snw_stream_find(&session->streams, session->audio_stream->id);
+      stream = snw_ice_stream_find(&session->streams, session->audio_stream->id);
    }
 
    if (!stream) return;
@@ -294,9 +294,9 @@ snw_ice_sdp_add_single_ssrc(snw_ice_session_t *session, int video, char *sdp) {
                    session->audio_stream->id : 
                    session->video_stream->id;
 
-      stream = snw_stream_find(&session->streams, id);
+      stream = snw_ice_stream_find(&session->streams, id);
    } else {
-      stream = snw_stream_find(&session->streams, session->audio_stream->id);
+      stream = snw_ice_stream_find(&session->streams, session->audio_stream->id);
    }
 
    if (stream == NULL)
@@ -342,7 +342,7 @@ ice_generate_candidate_attribute(snw_ice_session_t *session, char *sdp,
    log = session->ice_ctx->log;
 
    agent = session->agent;
-   stream = snw_stream_find(&session->streams, stream_id);
+   stream = snw_ice_stream_find(&session->streams, stream_id);
    if(!stream) {
       ERROR(log, "stream not found, sid=%u", stream_id);
       return;
@@ -434,9 +434,9 @@ snw_ice_sdp_add_candidates(snw_ice_session_t *session, sdp_media_t *m, int video
           id = session->audio_stream->id > 0 ? 
                     session->audio_stream->id : 
                     session->video_stream->id;
-      stream = snw_stream_find(&session->streams, id);
+      stream = snw_ice_stream_find(&session->streams, id);
    } else {
-      stream = snw_stream_find(&session->streams, session->audio_stream->id);
+      stream = snw_ice_stream_find(&session->streams, session->audio_stream->id);
    }
 
    if (stream == NULL) return;
@@ -839,7 +839,7 @@ snw_ice_sdp_handle_answer(snw_ice_session_t *session, const char *sdp) {
                m = m->m_next;
                continue;
             }
-            stream = snw_stream_find(&session->streams, session->audio_stream->id);
+            stream = snw_ice_stream_find(&session->streams, session->audio_stream->id);
          } else {
             CLEAR_FLAG(session, WEBRTC_AUDIO);
          }
@@ -851,12 +851,12 @@ snw_ice_sdp_handle_answer(snw_ice_session_t *session, const char *sdp) {
                continue;
             }
             if(!IS_FLAG(session, WEBRTC_BUNDLE)) {
-               stream = snw_stream_find(&session->streams, session->video_stream->id);
+               stream = snw_ice_stream_find(&session->streams, session->video_stream->id);
             } else {
                uint32_t id = session->audio_stream->id > 0 ? 
                                 session->audio_stream->id : 
                                 session->video_stream->id;
-               stream = snw_stream_find(&session->streams, id);
+               stream = snw_ice_stream_find(&session->streams, id);
             }
          } else {
             CLEAR_FLAG(session, WEBRTC_VIDEO);

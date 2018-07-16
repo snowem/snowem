@@ -28,8 +28,8 @@
 #include <time.h>
 #endif
 
-#include "core/http.h"
 #include "core/log.h"
+#include "http/http.h"
 
 void
 snw_http_init_log(snw_http_context_t *ctx) {

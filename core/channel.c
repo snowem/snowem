@@ -88,7 +88,6 @@ snw_channel_get(snw_hashbase_t *ctx, uint32_t id, int *is_new) {
    return so;
 }
 
-/*CACHE_SEARCH(ctx->channel_cache, sitem, snw_channel_t*);*/
 snw_channel_t*
 snw_channel_search(snw_hashbase_t *ctx, uint32_t id) {
    snw_channel_t sitem;
@@ -96,17 +95,53 @@ snw_channel_search(snw_hashbase_t *ctx, uint32_t id) {
    return (snw_channel_t*)snw_cache_search(ctx, &sitem);
 }
 
-/*CACHE_INSERT(ctx->channel_cache, sitem, snw_channel_t*);*/
 snw_channel_t*
 snw_channel_insert(snw_hashbase_t *ctx, snw_channel_t *sitem) {
    return (snw_channel_t*)snw_cache_insert(ctx, sitem);
 }
 
-/*CACHE_REMOVE(ctx->channel_cache, sitem, snw_channel_t*);*/
 int 
 snw_channel_remove(snw_hashbase_t *ctx, snw_channel_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }
 
+void
+snw_list_reset(snw_list_t *l) {
+  if (!l) return;
+
+  l->idx = 0;
+
+  return;
+}
+
+void
+snw_list_add_item(snw_list_t *l, uint32_t id) {
+  if (!l) return;
+
+  l->list[l->idx] = id;
+  l->idx++;
+
+  return;
+}
+
+void
+snw_list_remove_item(snw_list_t *l, uint32_t id) {
+  int i = 0;
+
+  if (!l || l->idx == 0) return;
+  
+  for (i=0; i < l->idx; i++) {
+    if (l->list[i] == id)
+      break;
+  }
+
+  if (l->idx <= i) return;
+
+  l->idx--;
+  l->list[i] = l->list[l->idx];
+  l->list[l->idx] = 0;
+
+  return;
+}
 
 
