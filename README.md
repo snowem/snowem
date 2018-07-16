@@ -1,4 +1,4 @@
-Snowem is a lightweight live streaming server, based on webrtc technology. Basically, a video stream is identified by a channel id - an integer. Snowem has three built-in subsystems, which are designed for developers to easily integrate video streams into their applictions. 
+Snowem is a lightweight live streaming server, based on webrtc technology. Snowem has three built-in subsystems. 
 
  * `RESTful Web Service` is used for channel management.
  * `Websocket Sevrer` plays a role of signaling service in WebRTC stack.
@@ -18,6 +18,7 @@ Snowem depends on the following libraries to build:
  * libsofia-sip-ua.  
  * libsrtp.  
  * libconfig.
+ * libbsd
 
 Notes: 
 
@@ -26,7 +27,7 @@ Notes:
 ```
 apt-get install libbsd-dev libbsd0 libssl1.0.0 libssl-dev libevent-dev \
 libsofia-sip-ua-dev libsofia-sip-ua0 libsrtp0 libsrtp0-dev libnettle6 \
-nettle-dev libconfig9 libconfig-dev
+nettle-dev libconfig9 libconfig-dev libbsd0 libbsd-dev
 ```
  
  * for installing libevent 2.1.xx, one may do the following:  
@@ -82,14 +83,11 @@ Steps to integrate video streams using [javascript sdk](https://github.com/snowe
 When SnowSDK is loaded, it invokes _snowAsyncInit_ if it is defined. Once it is called, you can initlialize SnowSDK with _init_ function. The _init_ function requires domain name or ip address of Snowem Websocket Service.
 
 ```
-(function(d){
-  var js, id = 'snowsdk', ref = d.getElementsByTagName('script')[0];
-  if (d.getElementById(id)) {return;}
-  js = d.createElement('script'); js.id = id; js.async = true;
-  js.src = "https://snowem.io/js/snowsdk.js";
-  ref.parentNode.insertBefore(js, ref);
-}(document));
-
+// put these lines in your html code.
+<script type="text/javascript" src="js/adapter.js"></script>
+<script type="text/javascript" src="js/snowsdk.js"></script>
+```
+```
 window.snowAsyncInit = function() {
   var config = { 
     'ip': "your-wss-ip",
@@ -103,76 +101,47 @@ function start_app() {
   // start your code here
 }
 ```
-
-**Step 2**: Create a channel.  
-To publish a video stream, one need to get a channel id from Snowem server. 
-
+**Step 2**: Create Stream object.   
+Stream object is used to capture media content from camera or html video tag.
 ```
-var config = { 
-  'name': "snowem test room",
-  'type': "broadcast"
-  }   
-function onSuccess(resp) {
-  console.log("resp: " + resp.channelid);
-  //for example, use channel id to publish your media stream
+var config = {
+  'audio': true,
+  'video': true
+ };
+ var stream = new SnowSDK.Stream(config);
+```
+
+**Step 3**: Create a channel and publish/play a stream
+Channel object is used to communicate with snowem server. Once a channel is obtained, local stream can be published on it or remote stream can be locally played.
+```
+function onSuccess(channel) {
+  // channel object contain all needed info, see docs for details
+  channel.listen("onConnected", function() {
+   // after successfully connecting to snowem server, a stream can be published on the channel.
+   channel.publish(existingStream);
+  }); 
+
+  channel.listen("onAddStream", function(stream) {
+   // stream object contain media stream which can be play by channel.play
+   channel.play(stream);
+  }); 
+
+  channel.listen("onRemoveStream", function(stream) {
+   // stream object to be removed.
+  }); 
+  // connect channel to snowem server.
+  channel.connect();  
 }
 function onError(resp) {
   console.log("resp: " + resp);
 }
+var config = { 
+  'name': "test",
+  'type': "conference",
+  'key': "none"
+}  
 SnowSDK.createChannel(config, onSuccess, onError);
 ```
-
-**Step 3**: Create PeerAgent object.   
-A PeerAgent object is used to establish connection to built-in websocket server and do all signaling part for WebRTC stack working.  
-
-```
-var config = { 
-   'media_constraints' : { audio: true, 
-                           video: {
-                              mandatory:{
-                                 maxWidth: 480,
-                                 maxHeight: 270,
-                                 minWidth: 480,
-                                 minHeight: 270 
-                          }}},
-    'peerconnection_config' : {'iceServers':[{'urls':'stun:stun.l.google.com:19302',
-                                                   'urls':'stun:stun1.l.google.com:19302'}],
-                                    'iceTransports': 'all'},
-    'sdp_constraints' : {'mandatory': {
-         'OfferToReceiveAudio':true,
-         'OfferToReceiveVideo':true }}
-   }   
-var peer = new SnowSDK.PeerAgent(config);
-```
-
-**Step 4**: Publish a video stream to a channel.   
-
-After successful creating channel and PeerAgent object, one can publish a video stream.
-
-``` javascript
-var settings = { 
-   'channelid': peer.channelId, 
-   'local_video_elm': document.getElementById('localVideo')
-};  
-peer.onAddPeerStream = function(info) {
-  console.log("peerid: ", info.peerid);
-  //make use of remote stream
-  //remote_video_elm.srcObject = info.stream;
-}
-peer.onRemovePeerStream = function(info) {
-  console.log("removing stream from peerid: " + info.peerid);
-}
-peer.publish(settings);
-```
-
-**Step 5**: Play a video stream  
-
-One can play a video stream with a given channel id.
-
-```
-peer.play(channelid);
-```
-
 ### Further Resource
 
 Check out our javascript sdk [here](https://github.com/snowem/sdkjs) for more examples.   
