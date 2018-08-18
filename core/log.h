@@ -19,7 +19,6 @@
 #define _SNOW_CORE_LOG_H_
 
 #include <string.h>
-#include <dirent.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
