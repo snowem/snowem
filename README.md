@@ -74,7 +74,7 @@ Note: one may find configuration sample file at [snowem.conf](https://github.com
 ```
 snowem <path-to>/snowem.conf
 ```
-## A Quick Demo
+## Quick Demo
 Assume snowem server runs on ip address x.y.z.t. Login to that server, if you do not have nodejs and express framework, install them:
 ```
 curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
@@ -91,7 +91,7 @@ node index.js
 ```
 Open chrome browser on https://x.y.z.t:8000. Enjoy the demo.
 
-## A Quick Start
+## Quick Start
 
 Steps to integrate video streams using [javascript sdk](https://github.com/snowem/sdkjs).
 
