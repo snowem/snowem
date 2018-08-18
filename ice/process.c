@@ -50,11 +50,11 @@ void ice_send_candidate(snw_ice_session_t *session,
    json_object_object_add(jobj, "flowid", json_object_new_int(session->flowid));
    json_object_object_add(jobj, "callid", json_object_new_string("callid"));
    if (video) {
-     json_object_object_add(candobj, "label", json_object_new_int(1));
-     json_object_object_add(candobj, "id", json_object_new_string("video"));
+     json_object_object_add(candobj, "sdpMLineIndex", json_object_new_int(1));
+     json_object_object_add(candobj, "sdpMid", json_object_new_string("video"));
    } else {
-     json_object_object_add(candobj, "label", json_object_new_int(0));
-     json_object_object_add(candobj, "id", json_object_new_string("audio"));
+     json_object_object_add(candobj, "sdpMLineIndex", json_object_new_int(0));
+     json_object_object_add(candobj, "sdpMid", json_object_new_string("audio"));
    }
    json_object_object_add(candobj, "type", json_object_new_string("candidate"));
    json_object_object_add(candobj, "candidate", json_object_new_string(buffer));
