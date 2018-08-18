@@ -152,6 +152,12 @@ snw_process_http_options(snw_http_context_t *ctx, struct evhttp_request *req) {
                      "Access-Control-Allow-Headers", "*");
   evhttp_add_header(evhttp_request_get_output_headers(req),
                      "Access-Control-Allow-Origin", "*");
+  evhttp_add_header(evhttp_request_get_output_headers(req),
+                     "Connection", "keep-alive");
+  evhttp_add_header(evhttp_request_get_output_headers(req),
+                     "Access-Control-Allow-Headers",
+                     "X-Requested-With, content-type, access-control-allow-origin, access-control-allow-methods, access-control-allow-headers, POST, GET, OPTIONS, DELETE");
+
   evbuffer_add_printf(buf, "Requested: %s\n", evhttp_request_uri(req));
   evhttp_send_reply(req, HTTP_OK, "OK", buf);
 
@@ -160,7 +166,7 @@ snw_process_http_options(snw_http_context_t *ctx, struct evhttp_request *req) {
 }
 
 void
-snw_process_http_put(snw_http_context_t *ctx, struct evhttp_request *req) {
+snw_process_http_head(snw_http_context_t *ctx, struct evhttp_request *req) {
   snw_log_t *log = ctx->log;
   struct evbuffer *buf = 0;
 
@@ -177,7 +183,7 @@ snw_process_http_put(snw_http_context_t *ctx, struct evhttp_request *req) {
 }
 
 void
-snw_process_http_head(snw_http_context_t *ctx, struct evhttp_request *req) {
+snw_process_http_put(snw_http_context_t *ctx, struct evhttp_request *req) {
   snw_log_t *log = ctx->log;
   struct evbuffer *buf = 0;
 
