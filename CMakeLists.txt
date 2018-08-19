@@ -64,6 +64,7 @@ file(GLOB sources
        websocket/*.c websocket/*.h
        http/*.c http/*.h
        rtp/*.c rtp/*.h
+       recording/*.c recording/*.h
        )
 file(GLOB c_sources core/*.c ice/*.c websocket/*.c)
 

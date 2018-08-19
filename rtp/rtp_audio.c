@@ -20,6 +20,7 @@
 #include <fcntl.h>
 
 #include "core/log.h"
+#include "recording/recording.h"
 #include "rtp/rtp_audio.h"
 #include "rtp/rtp_nack.h"
 
@@ -75,8 +76,8 @@ snw_rtp_audio_handle_pkg_in(void *data, char *buf, int buflen) {
       snw_rtp_module_t *m = g_rtp_audio_modules[i];
       if (!m) break;
 
-      DEBUG(log,"audio-in handling, name=%s, m_pkt_type=%u, pkt_type=%u", 
-               m->name, m->pkt_type, ctx->pkt_type);
+      //DEBUG(log,"audio-in handling, name=%s, m_pkt_type=%u, pkt_type=%u", 
+      //         m->name, m->pkt_type, ctx->pkt_type);
       if (ctx->pkt_type & m->pkt_type)
          m->handle_pkg_in(ctx,buf,buflen);
    }

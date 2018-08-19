@@ -21,6 +21,7 @@
 #include "core/types.h"
 #include "core/log.h"
 #include "ice/ice.h"
+#include "recording/recording.h"
 
 #ifdef ENABLE_RTMP
 #include "rtmp/rtmp.h"
@@ -76,7 +77,6 @@ struct rtp_hdr_ext {
 #define MODULE_CLEAR_FLAG(m,flag) (m).flags &= ~flag;
 #define MODULE_IS_FLAG(m,flag) ((m).flags & flag)
 
-typedef struct snw_rtp_module snw_rtp_module_t;
 struct snw_rtp_module {
    const char  *name;
    void  *ctx;
@@ -111,6 +111,9 @@ struct snw_rtp_ctx {
 
    //callbacks
    void (*send_pkt)(void *ctx, int control, int video, char *buffer, int len);
+
+   //recording setting
+   snw_record_ctx_t     *record_ctx;
 
    //rtmp setting
 #ifdef ENABLE_RTMP

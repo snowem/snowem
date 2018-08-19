@@ -20,6 +20,7 @@
 #include <fcntl.h>
 
 #include "core/log.h"
+#include "recording/recording.h"
 #include "rtp/rtp_h264.h"
 #include "rtp/rtp_nack.h"
 #include "rtp/rtp_video.h"
