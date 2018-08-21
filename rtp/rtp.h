@@ -39,8 +39,7 @@ extern "C" {
 
 #pragma pack(push, 1)
 typedef struct rtp_hdr rtp_hdr_t;
-struct rtp_hdr
-{
+struct rtp_hdr {
 #if __BYTE_ORDER == __BIG_ENDIAN
 	uint16_t v:2;
 	uint16_t p:1;
@@ -94,6 +93,17 @@ struct snw_rtp_module {
 #define   RTP_AUDIO  (1<<0)
 #define   RTP_VIDEO  (1<<1)
 #define   RTP_RTCP   (1<<2)
+#define   RTP_RECORD (1<<3)
+
+/* recoring commands */
+#define RTP_RECORD_START 1
+#define RTP_RECORD_STOP  2
+
+typedef struct snw_record_cmd snw_record_cmd_t;
+struct snw_record_cmd {
+  uint32_t cmd;
+  //to be defined
+};
 
 typedef struct snw_rtp_ctx snw_rtp_ctx_t;
 struct snw_rtp_ctx {

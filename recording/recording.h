@@ -36,16 +36,31 @@ int snw_record_fini();
 
 extern snw_rtp_module_t g_rtp_record_module;
 
+#define MAX_VIDEO_BUFFER_SIZE 1024*1024
+#define VIDEO_STATE_START (1<<0)
+#define VIDEO_STATE_END   (1<<1)
+
 typedef struct snw_record_ctx snw_record_ctx_t;
 struct snw_record_ctx {
   uint32_t id;
   snw_log_t *log;
 
   //need buffers to queue audio and video pkts
+  char  video_data[MAX_VIDEO_BUFFER_SIZE];
+  char *video_data_ptr;
+  int   video_data_len;
+  int   video_state;
+  int   has_keyframe;
+
 
   enum AVCodecID   video_codec;
   enum AVCodecID   audio_codec;
 
+  uint64_t         first_ts;
+  uint64_t         audio_offset_ts;
+  uint64_t         video_offset_ts;
+
+  uint64_t         cur_ts;
   uint64_t         first_audio_ts;
   uint64_t         first_video_ts;
   uint16_t         last_audio_seq_num;
@@ -56,7 +71,7 @@ struct snw_record_ctx {
 };
 
 snw_record_ctx_t*
-snw_record_create(uint32_t id);
+snw_record_create(void *ctx);
 
 int
 snw_record_write_frame(snw_record_ctx_t *r, int pkt_type, char *data, int len);

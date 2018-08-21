@@ -1255,7 +1255,9 @@ void
 snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
    snw_ice_session_t *session;
+   snw_rtp_ctx_t     *rtp_ctx;
    json_object *jobj = (json_object*)data;
+   snw_record_cmd_t cmd;
    uint32_t streamid = 0;
 
    DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
@@ -1270,6 +1272,16 @@ snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowi
       ERROR(log,"session not found, flowid=%u",flowid);
       return;
    }
+
+   rtp_ctx = &session->rtp_ctx;
+   rtp_ctx->stream = 0;
+   rtp_ctx->component = 0;
+   rtp_ctx->epoch_curtime = session->curtime;
+   rtp_ctx->ntp_curtime = rtp_ctx->epoch_curtime + NTP_EPOCH_DIFF;
+   rtp_ctx->pkt_type = RTP_RECORD;
+   memset(&cmd,0,sizeof(cmd));
+   cmd.cmd = RTP_RECORD_STOP;
+   snw_rtp_handle_pkg_in(rtp_ctx,(char*)&cmd,sizeof(cmd));
 
    DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
    snw_ice_session_free(ice_ctx,session);
@@ -1657,6 +1669,8 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    snw_log_t *log = 0;
    snw_ice_session_t *session = 0;
    json_object *jobj = (json_object*)data;
+   snw_rtp_ctx_t     *rtp_ctx;
+   snw_record_cmd_t cmd;
    uint32_t channelid = 0;
    uint32_t streamid = 0;
 
@@ -1685,6 +1699,17 @@ snw_ice_publish_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    DEBUG(log, "channel is publishing, flowid=%u, streamid=%u, channelid=%u", 
          flowid, streamid, channelid);
    SET_FLAG(session,ICE_PUBLISHER);
+
+   rtp_ctx = &session->rtp_ctx;
+   rtp_ctx->stream = 0;
+   rtp_ctx->component = 0;
+   rtp_ctx->epoch_curtime = session->curtime;
+   rtp_ctx->ntp_curtime = rtp_ctx->epoch_curtime + NTP_EPOCH_DIFF;
+   rtp_ctx->pkt_type = RTP_RECORD;
+   memset(&cmd,0,sizeof(cmd));
+   cmd.cmd = RTP_RECORD_START;
+   snw_rtp_handle_pkg_in(rtp_ctx,(char*)&cmd,sizeof(cmd));
+
    return;
 }
 
