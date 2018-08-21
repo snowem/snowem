@@ -67,6 +67,10 @@ ice_cert_file = "<path-to>/ice_fullchain.pem"
 ice_key_file = "<path-to>/ice_privkey.pem"
 // TRACE: 0, INFO: 1, DEBUG: 2, WARN: 3, ERROR: 4, FATAL: 5
 log_level = 0
+
+// Recording settings
+recording_enabled = 1
+recording_folder = "/var/snowem/recordings"
 ```
 
 Note: one may find configuration sample file at [snowem.conf](https://github.com/snowem/snowem/blob/master/conf/snowem.conf). To run Snowem, simple execute:
