@@ -71,11 +71,12 @@ struct snw_context {
    const char         *wss_ip;
    uint16_t            wss_port;
 
-   const char         *base_path;
+   const char         *base_log_path;
    const char         *main_log_file;
    const char         *ice_log_file;
    const char         *websocket_log_file;
    const char         *http_log_file;
+   const char         *recording_folder;
 
    uint32_t            log_file_maxsize;
    uint32_t            log_rotate_num;
@@ -85,6 +86,7 @@ struct snw_context {
    uint32_t            websocket_log_enabled:1;
    uint32_t            http_log_enabled:1;
    uint32_t            libevent_log_enabled:1;
+   uint32_t            recording_enabled:1;
    uint32_t            reserved:27;
 
    /* task contexts */

@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+typedef struct snw_rtp_module snw_rtp_module_t;
 
 #ifdef __cplusplus
 }

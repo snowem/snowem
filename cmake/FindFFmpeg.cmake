@@ -1,4 +1,3 @@
-#.rst:
 # FindFFMPEG
 # ----------
 #
@@ -34,95 +33,16 @@
 # Originally from VTK project
 
 
-find_path(FFMPEG_INCLUDE_DIR1 avformat.h
+find_path(FFMPEG_INCLUDE_DIR6 libavformat/avformat.h libavcodec/avcodec.h libswscale/swscale.h libavutil/avutil.h libavdevice/avdevice.h
   $ENV{FFMPEG_DIR}
-  $ENV{FFMPEG_DIR}/ffmpeg
-  $ENV{FFMPEG_DIR}/libavformat
-  $ENV{FFMPEG_DIR}/include/libavformat
-  $ENV{FFMPEG_DIR}/include/ffmpeg
-  /usr/local/include/ffmpeg
-  /usr/include/ffmpeg
-  /usr/include/libavformat
-  /usr/include/ffmpeg/libavformat
-  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}/libavformat
-  /usr/local/include/libavformat
+  /usr/local/include
+  /usr/include
+  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}
 )
 
-find_path(FFMPEG_INCLUDE_DIR2 avutil.h
-  $ENV{FFMPEG_DIR}
-  $ENV{FFMPEG_DIR}/ffmpeg
-  $ENV{FFMPEG_DIR}/libavutil
-  $ENV{FFMPEG_DIR}/include/libavutil
-  $ENV{FFMPEG_DIR}/include/ffmpeg
-  /usr/local/include/ffmpeg
-  /usr/include/ffmpeg
-  /usr/include/libavutil
-  /usr/include/ffmpeg/libavutil
-  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}/libavutil
-  /usr/local/include/libavutil
-)
-
-find_path(FFMPEG_INCLUDE_DIR3 avcodec.h
-  $ENV{FFMPEG_DIR}
-  $ENV{FFMPEG_DIR}/ffmpeg
-  $ENV{FFMPEG_DIR}/libavcodec
-  $ENV{FFMPEG_DIR}/include/libavcodec
-  $ENV{FFMPEG_DIR}/include/ffmpeg
-  /usr/local/include/ffmpeg
-  /usr/include/ffmpeg
-  /usr/include/libavcodec
-  /usr/include/ffmpeg/libavcodec
-  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}/libavcodec
-  /usr/local/include/libavcodec
-)
-
-find_path(FFMPEG_INCLUDE_DIR4 swscale.h
-  $ENV{FFMPEG_DIR}
-  $ENV{FFMPEG_DIR}/ffmpeg
-  $ENV{FFMPEG_DIR}/libswscale
-  $ENV{FFMPEG_DIR}/include/libswscale
-  $ENV{FFMPEG_DIR}/include/ffmpeg
-  /usr/local/include/ffmpeg
-  /usr/include/ffmpeg
-  /usr/include/libswscale
-  /usr/include/ffmpeg/libswscale
-  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}/libswscale
-  /usr/local/include/libswscale
-)
-
-find_path(FFMPEG_INCLUDE_DIR5 avdevice.h
-  $ENV{FFMPEG_DIR}
-  $ENV{FFMPEG_DIR}/ffmpeg
-  $ENV{FFMPEG_DIR}/libavdevice
-  $ENV{FFMPEG_DIR}/include/libavdevice
-  $ENV{FFMPEG_DIR}/include/ffmpeg
-  /usr/local/include/ffmpeg
-  /usr/include/ffmpeg
-  /usr/include/libavdevice
-  /usr/include/ffmpeg/libavdevice
-  /usr/include/${CMAKE_LIBRARY_ARCHITECTURE}/libavdevice
-  /usr/local/include/libavdevice
-)
-
-if(FFMPEG_INCLUDE_DIR1)
-  if(FFMPEG_INCLUDE_DIR2)
-    if(FFMPEG_INCLUDE_DIR3)
-      set(FFMPEG_INCLUDE_DIR ${FFMPEG_INCLUDE_DIR1}
-                             ${FFMPEG_INCLUDE_DIR2}
-                             ${FFMPEG_INCLUDE_DIR3})
-    endif()
-  endif()
-endif()
-
-if(FFMPEG_INCLUDE_DIR4)
+if(FFMPEG_INCLUDE_DIR6)
   set(FFMPEG_INCLUDE_DIR ${FFMPEG_INCLUDE_DIR}
-                         ${FFMPEG_INCLUDE_DIR4})
-endif()
-
-if(FFMPEG_INCLUDE_DIR5)
-  set(FFMPEG_INCLUDE_DIR ${FFMPEG_INCLUDE_DIR}
-                         ${FFMPEG_INCLUDE_DIR5}
-                         ${FFMPEG_INCLUDE_DIR5}/..)
+                         ${FFMPEG_INCLUDE_DIR6})
 endif()
 
 find_library(FFMPEG_avformat_LIBRARY avformat

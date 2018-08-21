@@ -64,6 +64,7 @@ file(GLOB sources
        websocket/*.c websocket/*.h
        http/*.c http/*.h
        rtp/*.c rtp/*.h
+       recording/*.c recording/*.h
        )
 file(GLOB c_sources core/*.c ice/*.c websocket/*.c)
 
@@ -153,6 +154,16 @@ else ()
    MESSAGE(FATAL_ERROR LIBM not found)
 endif ()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFFmpeg.cmake)
+if (${FFMPEG_FOUND})
+  target_include_directories(snowem PUBLIC ${FFMPEG_INCLUDE_DIR})
+  MESSAGE(STATUS "ffmpeg include: ${FFMPEG_INCLUDE_DIR}")
+  MESSAGE(STATUS "ffmpeg lib: ${FFMPEG_LIBRARIES}")
+else ()
+  MESSAGE(FATAL_ERROR "FFMPEG not found")
+endif ()
+
+
 
 target_link_libraries(snowem PUBLIC
   cice_static
@@ -169,6 +180,7 @@ target_link_libraries(snowem PUBLIC
   ${CONFIG_LIBRARIES}
   ${BSD_LIBRARIES}
   ${LIBM_LIBRARIES}
+  ${FFMPEG_LIBRARIES}
 )
 
 ## packaging ##################################################################
