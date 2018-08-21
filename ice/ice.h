@@ -53,6 +53,7 @@ struct snw_ice_api {
 };
 typedef TAILQ_HEAD(ice_api_head, snw_ice_api) ice_api_head_t;
 
+#define RECORD_FOLDER_LEN 256
 struct snw_ice_context {
    void      *ctx;
    struct event_base  *ev_base;
@@ -63,6 +64,8 @@ struct snw_ice_context {
    int        ice_lite_enabled;
    int        ipv6_enabled;
    int        ice_tcp_enabled;
+   int        recording_enabled;
+   const char *recording_folder;
 
    char       local_ip[INET6_ADDRSTRLEN];
    char       public_ip[INET6_ADDRSTRLEN];

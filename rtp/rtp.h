@@ -123,6 +123,8 @@ struct snw_rtp_ctx {
    void (*send_pkt)(void *ctx, int control, int video, char *buffer, int len);
 
    //recording setting
+   int                   recording_enabled;
+   const char*           recording_folder;
    snw_record_ctx_t     *record_ctx;
 
    //rtmp setting
