@@ -268,6 +268,8 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    ice_ctx->ice_lite_enabled = 1; 
    ice_ctx->ipv6_enabled = 0; 
    ice_ctx->ice_tcp_enabled = 0;
+   ice_ctx->recording_enabled = ctx->recording_enabled;
+   ice_ctx->recording_folder = ctx->recording_folder;
 
    ice_dtls_init(ice_ctx, ctx->wss_cert_file, ctx->wss_key_file);
 

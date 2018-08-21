@@ -107,7 +107,7 @@ snw_config_init(snw_context_t *ctx, const char *file) {
 
    if (config_lookup_string(&cfg, "main_log", &str)) {
       ctx->main_log_file = strdup(str);
-      ctx->base_path = strdup(dirname(strdup(str)));
+      ctx->base_log_path = strdup(dirname(strdup(str)));
    } else {
       fprintf(stderr,"main_log %s not found\n", str);
       exit(0);
@@ -130,10 +130,10 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       ctx->websocket_log_file = strdup(str);
    } else {
       if (ctx->websocket_log_enabled != 0) {
-        int len = strlen(ctx->base_path) + strlen("/snowem_websocket.log") + 1;
+        int len = strlen(ctx->base_log_path) + strlen("/snowem_websocket.log") + 1;
         char *tmp = (char*) malloc(len);
         if (tmp) {
-          snprintf(tmp,len,"%s%s",ctx->base_path,"/snowem_websocket.log");
+          snprintf(tmp,len,"%s%s",ctx->base_log_path,"/snowem_websocket.log");
           tmp[len] = '\0';
           ctx->websocket_log_file = tmp;
         } else {
@@ -154,10 +154,10 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       ctx->http_log_file = strdup(str);
    } else {
       if (ctx->http_log_enabled != 0) {
-        int len = strlen(ctx->base_path) + strlen("/snowem_http.log") + 1;
+        int len = strlen(ctx->base_log_path) + strlen("/snowem_http.log") + 1;
         char *tmp = (char*) malloc(len);
         if (tmp) {
-          snprintf(tmp,len,"%s%s",ctx->base_path,"/snowem_http.log");
+          snprintf(tmp,len,"%s%s",ctx->base_log_path,"/snowem_http.log");
           tmp[len] = '\0';
           ctx->http_log_file = tmp;
         } else {
@@ -172,6 +172,21 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       ctx->http_log_enabled = number;
    } else {
       ctx->http_log_enabled = 0;
+   }
+
+   if (config_lookup_int(&cfg, "recording_enabled", &number)) {
+      ctx->recording_enabled = number;
+   } else {
+      ctx->recording_enabled = 0;
+   }
+
+   if (config_lookup_string(&cfg, "recording_folder", &str)) {
+      ctx->recording_folder = strdup(str);
+   } else {
+      if (ctx->recording_enabled != 0) {
+        fprintf(stderr,"recording_folder not found\n");
+        ctx->recording_folder = 0;
+      }
    }
 
    setting = config_lookup(&cfg, "modules");

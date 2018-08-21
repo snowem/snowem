@@ -55,6 +55,8 @@ snw_record_handle_pkg_in(void *data, char *buf, int buflen) {
   if (!ctx || !ctx->log || !buf) return -1;
   log = ctx->log;
 
+  if (!ctx->recording_enabled) return 0;
+
   //DEBUG(log,"record-in handling, pkt_type=%u", ctx->pkt_type);
   //print_rtp_header(log,buf,buflen,"record"); 
 
@@ -218,7 +220,7 @@ snw_record_create(void *data) {
   } else {
 
     memset(name,0,128);
-    snprintf(name,128,"./recording/test_%u.webm",rand());
+    snprintf(name,128,"%s/test_%u.webm",rtp_ctx->recording_folder, rand());
     memcpy(av_ctx->filename, name, sizeof(av_ctx->filename));
     DEBUG(log,"create recording, name=%s", name);
 

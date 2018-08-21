@@ -1100,6 +1100,8 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    session->control_mode = ICE_CONTROLLED_MODE;
    session->flags = 0;
    snw_rtp_ctx_init(&session->rtp_ctx);
+   session->rtp_ctx.recording_enabled = ice_ctx->recording_enabled;
+   session->rtp_ctx.recording_folder = ice_ctx->recording_folder;
    session->rtp_ctx.session = session;
    session->rtp_ctx.log = log;
    session->rtp_ctx.send_pkt = send_pkt_callback;
