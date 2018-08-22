@@ -133,17 +133,21 @@ snw_rtp_module_t g_rtp_record_module = {
 
 int
 snw_record_create_audio_stream(snw_record_ctx_t *ctx) {
-  AVCodec* audio_codec = 0;
+  AVCodecParameters * codec_params = 0;
 
   if (!ctx) return -1;
 
-  audio_codec = avcodec_find_encoder(ctx->audio_codec);
-  if (!audio_codec) {
+  codec_params = avcodec_parameters_alloc();
+  if (!codec_params) {
     //ERROR(log,"Could not find audio codec");
     return -1;
   }
+  codec_params->codec_id = AV_CODEC_ID_OPUS;
+  codec_params->codec_type = AVMEDIA_TYPE_AUDIO;
+  codec_params->sample_rate = 44100;
 
-  ctx->audio_stream = avformat_new_stream(ctx->av_ctx, audio_codec);
+  ctx->audio_stream = avformat_new_stream(ctx->av_ctx, 0);
+  ctx->audio_stream->codecpar = codec_params;
   ctx->audio_stream->id = 1;
   ctx->audio_stream->codec->codec_id = ctx->audio_codec;
   ctx->audio_stream->codec->sample_rate = 44100;
@@ -158,30 +162,25 @@ snw_record_create_audio_stream(snw_record_ctx_t *ctx) {
 
 int
 snw_record_create_video_stream(snw_record_ctx_t *ctx) {
-  AVCodec* video_codec = 0;
-  AVCodecContext* codec_ctx = 0;
   AVCodecParameters * codec_params = 0;
 
   if (!ctx) return -1;
 
-  video_codec = avcodec_find_encoder(ctx->video_codec);
-  if (!video_codec) return 0;
-
-  codec_ctx = avcodec_alloc_context3(video_codec);
-  if (!codec_ctx) return 0;
-
-  codec_ctx->codec_id = ctx->av_ctx->oformat->video_codec;
-  codec_ctx->width = 640;
-  codec_ctx->height = 480;
-  codec_ctx->time_base = (AVRational) { 1, 30 };
-  codec_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
-
   codec_params = avcodec_parameters_alloc();
-  avcodec_parameters_from_context(codec_params, codec_ctx);
+  if (!codec_params) {
+    //ERROR(log,"Could not find audio codec");
+    return -1;
+  }
+  codec_params->codec_id = AV_CODEC_ID_VP8;
+  codec_params->codec_type = AVMEDIA_TYPE_VIDEO;
+  codec_params->width = 640;
+  codec_params->height = 480;
+  //codec_params->format = AV_PIX_FMT_YUV420P;
+  //codec_params->bit_rate=9000*1000;
 
   ctx->video_stream = avformat_new_stream(ctx->av_ctx, 0);
   ctx->video_stream->id = 0;
-  ctx->video_stream->time_base = codec_ctx->time_base;
+  ctx->video_stream->time_base = (AVRational) { 1, 30 };
   ctx->video_stream->codecpar = codec_params;
   ctx->video_stream->avg_frame_rate = av_inv_q(ctx->video_stream->time_base);
 
@@ -190,7 +189,6 @@ snw_record_create_video_stream(snw_record_ctx_t *ctx) {
     ctx->video_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
   }
   ctx->av_ctx->oformat->flags |= AVFMT_VARIABLE_FPS;
-  avcodec_free_context(&codec_ctx);
 
   return 0;
 }
@@ -271,6 +269,7 @@ snw_record_write_raw_data(snw_record_ctx_t *r, int audio, int64_t ts,  char *dat
   av_packet.data = data;
   av_packet.size = len;
   av_packet.pts = ts;
+  av_packet.dts = ts;
 
   /*{//DEBUG
     snw_log_t *log = 0;
