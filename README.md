@@ -40,6 +40,13 @@ cd libevent-2.1.8-stable
 make && make install
 ```
 
+ * on Ubuntu system, supporting ffmpeg requires to install the following packages:
+
+```
+apt-get install libavutil-dev libavresample-dev libavfilter-dev\
+libavdevice-dev libavcodec-dev libavformat-dev
+```
+
 To build Snowem, execute the following commands: 
 
 ```
