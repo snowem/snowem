@@ -66,12 +66,7 @@ snw_shmmq_t*
 snw_shmmq_new(int type);
 
 int 
-snw_shmmq_init(snw_shmmq_t *mq, const char* fifo_path, 
-      int32_t wait_sec, int32_t wait_usec, 
-      int32_t shm_key, int32_t shm_size);
-
-int 
-snw_shmmq_init_new(snw_shmmq_t *mq,
+snw_shmmq_init(snw_shmmq_t *mq,
       int32_t wait_sec, int32_t wait_usec, 
       int32_t shm_key, int32_t shm_size);
 

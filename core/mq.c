@@ -87,94 +87,7 @@ snw_shmmq_new(int type) {
 }
 
 int 
-snw_shmmq_init(snw_shmmq_t *mq, const char* fifo_path, 
-      int32_t wait_sec, int32_t wait_usec, 
-      int32_t shm_key, int32_t shm_size) {
-  int ret = 0;
-  int val;
-  char *mem_addr = NULL;
-  int mode = 0666 | O_NONBLOCK | O_NDELAY;
-
-  if (mq == NULL) return -1;
-  mq->type = SNW_MQ_FIFO;
-
-  errno = 0;
-  if ((mkfifo(fifo_path, mode)) < 0) {
-    if (errno != EEXIST) {
-      ret = -1;
-      goto done;
-    }
-  }
-
-  if ((mq->fd = open(fifo_path, O_RDWR)) < 0) {
-    ret = -2;
-    goto done;
-  }
-
-  if (mq->fd > 1024) {
-    close(mq->fd);
-    ret = -3;
-    goto done;
-  }
-    
-  val = fcntl(mq->fd, F_GETFL, 0);
-  
-  if (val == -1) {
-    ret = errno ? -errno : val;
-    goto done;
-  }
-
-  if (val & O_NONBLOCK) {
-    ret = 0;
-    goto done;
-  }
-  
-  ret = fcntl(mq->fd, F_SETFL, val | O_NONBLOCK | O_NDELAY);
-  if (ret < 0) {
-    ret = errno ? -errno : ret;
-    goto done;
-  } else {
-    ret = 0;
-  }
-
-  assert(shm_size > (int32_t)sizeof(*mq->shm_ctrl));
-
-  mq->shm = snw_shm_create(shm_key, shm_size);
-  if (mq->shm == NULL) {
-    mq->shm = snw_shm_open(shm_key, shm_size);
-    if (mq->shm == NULL) {
-      ret = -1;
-      goto done;
-    }
-    mem_addr = mq->shm->addr;
-    goto setup;
-  } else {
-    mem_addr = mq->shm->addr;
-  }
-
-  //TODO: reset mem if really needed
-  memset(mem_addr, 0, sizeof(*mq->shm_ctrl));
-  mq->shm_ctrl = (snw_shmctrl_t *)mem_addr;
-  mq->shm_ctrl->period_time = 1;
-  mq->shm_ctrl->write_cnt = 0;
-  mq->shm_ctrl->last_time = time(NULL);
-  mq->shm_ctrl->rate = 1;
-  mq->shm_ctrl->wait_sec = wait_sec;
-  mq->shm_ctrl->wait_usec = wait_usec;
- 
-setup:
-  mq->shm_ctrl = (snw_shmctrl_t *)mem_addr;
-  mem_addr += sizeof(*mq->shm_ctrl);
-  mq->data = (char*) mem_addr;
-  mq->size = shm_size - (sizeof(*mq->shm_ctrl));
-
-  ret = 0;
-done:
-  return ret;
-}
-
-int 
-snw_shmmq_init_new(snw_shmmq_t *mq,
+snw_shmmq_init(snw_shmmq_t *mq,
       int32_t wait_sec, int32_t wait_usec, 
       int32_t shm_key, int32_t shm_size) {
   int ret = 0;
@@ -310,27 +223,6 @@ snw_shmmq_enqueue(snw_shmmq_t *mq,
   return ret;
 }
 
-int 
-snw_shmmq_enqueue_new(snw_shmmq_t *mq, 
-      const time_t cur_time, const void* data, 
-      uint32_t data_len, uint32_t flow) {
-  int ret = 0;
-
-  if (mq == NULL) return -1;
-
-  ret = snw_write_mq(mq, data, data_len, flow);
-  if (ret < 0) return ret;
-
-#ifdef USE_ADAPTIVE_CONTROL
-  snw_shmctrl_update(mq->shm_ctrl,cur_time, 1);
-  if (0 != mq->write_cnt % mq->shm_ctrl->rate)
-    return 0;
-#endif 
-  errno = 0;
-  ret = write(mq->pipe[1], "\0", 1);
-  return ret;
-}
-
 int
 snw_read_mq(snw_shmmq_t *mq, void* buf, uint32_t buf_size, 
      uint32_t *data_len, uint32_t *flow) {
@@ -414,6 +306,7 @@ snw_shmmq_select_fifo(int fd, unsigned _wait_sec,
 int 
 snw_shmmq_dequeue(snw_shmmq_t *mq, void* buf, 
       uint32_t buf_size, uint32_t *data_len, uint32_t *flow) {
+  static char buffer[1024];
   int ret;
 
   if (mq == NULL) return -1;
@@ -428,8 +321,9 @@ snw_shmmq_dequeue(snw_shmmq_t *mq, void* buf,
     ret = snw_shmmq_select_fifo(mq->pipe[0],
       mq->shm_ctrl->wait_sec, mq->shm_ctrl->wait_usec);
   } else {
-    //errot
+    //error
   }
+
   if (ret == 0) {
     data_len = 0;
     return ret;
@@ -438,54 +332,19 @@ snw_shmmq_dequeue(snw_shmmq_t *mq, void* buf,
     return -1;
   }
 
-  {
-    static const int32_t buf_len = 1<<10;
-    char buffer[buf_len];
-    if (mq->type == SNW_MQ_FIFO) {
-      ret = read(mq->fd, buffer, buf_len);
-    } if (mq->type == SNW_MQ_PIPE) {
-      ret = read(mq->pipe[0], buffer, buf_len);
-    } else {
-    }
-    if (ret < 0 && errno != EAGAIN) {
-      return -1;
-    }
-  }  
-  ret = snw_read_mq(mq, buf, buf_size, data_len, flow);
-
-  return ret;
-}
-
-int 
-snw_shmmq_dequeue_new(snw_shmmq_t *mq, void* buf, 
-      uint32_t buf_size, uint32_t *data_len, uint32_t *flow) {
-  int ret;
-
-  if (mq == NULL) return -1;
-
-  ret = snw_read_mq(mq, buf, buf_size, data_len, flow); 
-  if (ret || *data_len) return ret;
-
-  ret = snw_shmmq_select_fifo(mq->pipe[0],
-    mq->shm_ctrl->wait_sec, mq->shm_ctrl->wait_usec);
-  if (ret == 0) {
-    data_len = 0;
-    return ret;
+  if (mq->type == SNW_MQ_FIFO) {
+    ret = read(mq->fd, buffer, 1024);
+  } if (mq->type == SNW_MQ_PIPE) {
+    ret = read(mq->pipe[0], buffer, 1024);
   }
-  else if (ret < 0) {
+
+  if (ret < 0 && errno != EAGAIN) {
     return -1;
   }
 
-  {
-    static const int32_t buf_len = 1<<10;
-    char buffer[buf_len];
-    ret = read(mq->pipe[0], buffer, buf_len);
-    if (ret < 0 && errno != EAGAIN) {
-      return -1;
-    }
-  }  
   ret = snw_read_mq(mq, buf, buf_size, data_len, flow);
 
   return ret;
 }
+
 
