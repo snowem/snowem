@@ -42,8 +42,8 @@ snw_create_task_context(snw_context_t *core_ctx, uint32_t req_key, uint32_t resp
      fprintf(stderr, "error: cannot create pipe");
      return 0;
   }
-  snw_shmmq_init_new(req_mq, 0, 0, req_key, size);
-  snw_shmmq_init_new(resp_mq, 0, 0, resp_key,size);
+  snw_shmmq_init(req_mq, 0, 0, req_key, size);
+  snw_shmmq_init(resp_mq, 0, 0, resp_key,size);
   ctx->req_mq = req_mq;
   ctx->resp_mq = resp_mq;
   ctx->ctx = core_ctx;
