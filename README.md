@@ -43,8 +43,9 @@ make && make install
  * on Ubuntu system, supporting ffmpeg requires to install the following packages:
 
 ```
-apt-get install libavutil-dev libavresample-dev libavfilter-dev\
-libavdevice-dev libavcodec-dev libavformat-dev
+add-apt-repository ppa:jonathonf/ffmpeg-3
+apt-get update
+apt-get install libavutil-dev libavresample-dev libavfilter-dev libavdevice-dev libavcodec-dev libavformat-dev
 ```
 
 To build Snowem, execute the following commands: 
