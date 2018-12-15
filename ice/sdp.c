@@ -154,7 +154,7 @@ snw_ice_sdp_add_global_attrs(snw_ice_session_t *session, int audio, int video, c
    strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
 
    /* timing t= */
-   snprintf(buffer, 512, "t=%lu %lu\r\n", (long)0, (long)0); //TODO: specify start and stop time.
+   snprintf(buffer, 512, "t=%lu %lu\r\n", (long)0, (long)0);
    strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
 
    /* lite ice a= */
@@ -170,6 +170,12 @@ snw_ice_sdp_add_global_attrs(snw_ice_session_t *session, int audio, int video, c
       snprintf(buffer, 512, " %s", "video");
       strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
    }
+   //TODO: option for data
+   if (1 /*data*/) {
+      snprintf(buffer, 512, " %s", "data");
+      strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
+   }
+
    strncat(sdp, "\r\n", ICE_BUFSIZE - strlen(sdp));
 
    /* msid-semantic: add new global attribute */
@@ -267,8 +273,8 @@ snw_ice_sdp_add_credentials(snw_ice_session_t *session, int video, char* sdp) {
       "a=ice-pwd:%s\r\n"
       "a=ice-options:trickle\r\n"
       "a=fingerprint:sha-256 %s\r\n"
-      "a=setup:%s\r\n"
-      "a=connection:new\r\n",
+      "a=setup:%s\r\n",
+      //"a=connection:new\r\n",
       ufrag, password,
       session->ice_ctx->local_fingerprint,
       dtls_mode);
@@ -448,7 +454,7 @@ snw_ice_sdp_add_candidates(snw_ice_session_t *session, sdp_media_t *m, int video
    return;
 }
 
-void 
+void
 snw_ice_sdp_add_mline(snw_ice_session_t *session, int video, char* sdp) {
    char buffer[512];
    int ipv6 = 0; //TODO: ipv6 not support now
@@ -458,14 +464,13 @@ snw_ice_sdp_add_mline(snw_ice_session_t *session, int video, char* sdp) {
    strncat(sdp, buffer, ICE_BUFSIZE);
 
    /* Add media format*/
-   //TODO: design to have more than one format or rtmp   
+   //TODO: design to have more than one format or rtmp
    if (video) {
      snprintf(buffer, 512, " %s\r\n", RTP_VP8_FORMAT);
    } else {
      snprintf(buffer, 512, " %s\r\n", RTP_OPUS_FORMAT);
    }
    strncat(sdp, buffer, ICE_BUFSIZE);
-
 
    /* Media connection c= */
    snprintf(buffer, 512, "c=IN %s 0.0.0.0\r\n", ipv6 ? "IP6" : "IP4");
@@ -477,15 +482,64 @@ snw_ice_sdp_add_mline(snw_ice_session_t *session, int video, char* sdp) {
       snprintf(buffer, 512, "a=mid:%s\r\n", "audio");
    }
    strncat(sdp, buffer, ICE_BUFSIZE);
-   
+
    /* ICE rtcpmux and related stuff */
    snw_ice_sdp_add_media_application(session,video,sdp);
-   
+
    /* ICE ufrag and pwd, and related stuff */
    snw_ice_sdp_add_credentials(session,video,sdp);
 
    /* add single ssrc, not support multi-ssrc by now */
    snw_ice_sdp_add_single_ssrc(session,video,sdp);
+
+   /* add candidates */
+   //snw_ice_sdp_add_candidates(session,m,video,sdp);
+
+   return;
+}
+
+void
+snw_ice_sdp_add_datachannel(snw_ice_session_t *session, char *sdp) {
+   char buffer[512];
+   int ipv6 = 0; //TODO: ipv6 not support now
+   uint32_t id = 0;
+   char *ufrag = 0;
+   char *password = 0;
+   const char *dtls_mode = "passive";
+
+   /* media */
+   snprintf(buffer, 512, "m=application 1 %s", RTP_SCTP_PROFILE);
+   strncat(sdp, buffer, ICE_BUFSIZE);
+
+   /* Add media format*/
+   snprintf(buffer, 512, " %s\r\n", RTP_SCTP_FORMAT);
+   strncat(sdp, buffer, ICE_BUFSIZE);
+
+   /* Media connection c= */
+   snprintf(buffer, 512, "c=IN %s 0.0.0.0\r\n", ipv6 ? "IP6" : "IP4");
+   strncat(sdp, buffer, ICE_BUFSIZE);
+
+   snprintf(buffer, 512, "a=ice-options:trickle\r\n");
+   strncat(sdp, buffer, ICE_BUFSIZE);
+
+   /* ICE ufrag and pwd, and related stuff */
+   //snw_ice_sdp_add_credentials(session,video,sdp);
+   id = (session->video_stream == 0) ? session->audio_stream->id : session->video_stream->id;
+   ice_agent_get_local_credentials(session->agent, id, &ufrag, &password);
+
+   snprintf(buffer, 512,
+      "a=ice-ufrag:%s\r\n"
+      "a=ice-pwd:%s\r\n"
+      "a=ice-options:trickle\r\n"
+      "a=fingerprint:sha-256 %s\r\n"
+      "a=setup:%s\r\n",
+      ufrag, password,
+      session->ice_ctx->local_fingerprint,
+      dtls_mode);
+   strncat(sdp, buffer, ICE_BUFSIZE);
+
+   if (ufrag != NULL) free(ufrag);
+   if (password != NULL) free(password);
 
    /* add candidates */
    //snw_ice_sdp_add_candidates(session,m,video,sdp);
@@ -503,9 +557,11 @@ snw_ice_sdp_create(snw_ice_session_t *session) {
    if(!sdp) return 0;
    sdp[0] = '\0';
 
+   //TODO: add mline and datachannel based on session settings
    snw_ice_sdp_add_global_attrs(session,1,1,sdp);
    snw_ice_sdp_add_mline(session,0,sdp);
    snw_ice_sdp_add_mline(session,1,sdp);
+   snw_ice_sdp_add_datachannel(session,sdp);
 
    return sdp;
 }

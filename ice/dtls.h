@@ -23,7 +23,8 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
-#include "ice.h"
+#include "ice/ice.h"
+#include "ice/sctp.h"
 
 /* dtls stuff */
 #define DTLS_CIPHERS "ALL:NULL:eNULL:aNULL"
@@ -51,7 +52,7 @@ enum {
 
 struct dtls_ctx {
    snw_ice_context_t *ctx;
-   void              *component;             
+   void              *component;
 
    int    type;
    int    state;
@@ -66,6 +67,9 @@ struct dtls_ctx {
    unsigned char material[SRTP_MASTER_LENGTH*2];
    srtp_t srtp_in;
    srtp_t srtp_out;
+
+   /* sctp context */
+   snw_ice_sctp_ctx_t *sctp;
 };
 
 int
@@ -82,6 +86,12 @@ dtls_do_handshake(dtls_ctx_t *dtls);
 
 int
 dtls_process_incoming_msg(dtls_ctx_t *dtls, char *buf, uint16_t len);
+
+int
+dtls_send_sctp_data(dtls_ctx_t *dtls, char *buf, int len);
+
+void
+dtls_notify_sctp_data(dtls_ctx_t *dtls, char *buf, int len);
 
 #endif
 
