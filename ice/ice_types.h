@@ -29,6 +29,8 @@ typedef struct snw_ice_stream snw_ice_stream_t;
 typedef struct snw_ice_component snw_ice_component_t;
 typedef struct snw_ice_context snw_ice_context_t;
 typedef struct dtls_ctx dtls_ctx_t;
+typedef struct snw_ice_sctp_ctx snw_ice_sctp_ctx_t;
+typedef struct snw_sctp_channel snw_sctp_channel_t;
 
 #define ICE_SESSION_SHM_KEY   0x091001
 #define ICE_SESSION_HASHTIME  10
@@ -81,8 +83,10 @@ typedef struct dtls_ctx dtls_ctx_t;
 
 
 #define RTP_PROFILE       "RTP/SAVPF"
+#define RTP_SCTP_PROFILE  "DTLS/SCTP"
 #define RTP_OPUS_FORMAT   "111"
 #define RTP_VP8_FORMAT    "100"
+#define RTP_SCTP_FORMAT   "5000"
 #define NO_FORMAT         "0"
 
 #ifdef __cplusplus

@@ -15,15 +15,16 @@
  *
  */
 
-#include "dtls.h"
 
 #include "core/log.h"
 #include "core/types.h"
 #include "core/session.h"
 #include "core/utils.h"
-#include "ice.h"
-#include "ice_types.h"
-#include "ice_session.h"
+#include "ice/dtls.h"
+#include "ice/ice.h"
+#include "ice/ice_types.h"
+#include "ice/ice_session.h"
+#include "ice/sctp.h"
 
 void
 dtls_callback(const SSL *ssl, int where, int ret) {
@@ -253,6 +254,8 @@ dtls_create(snw_ice_context_t *ice_ctx, void *component, int type) {
    if (!ice_ctx) return 0;
    log = ice_ctx->log;
 
+   DEBUG(log, "create dtls context, %p", component);
+
    dtls = (dtls_ctx_t*)malloc(sizeof(dtls_ctx_t));
    if (!dtls) return 0;
    
@@ -283,6 +286,7 @@ dtls_create(snw_ice_context_t *ice_ctx, void *component, int type) {
    SSL_set_bio(dtls->ssl, dtls->in_bio, dtls->dtls_bio);
 
    dtls->type = type;
+
    if (dtls->type == DTLS_TYPE_CLIENT) {
       SSL_set_connect_state(dtls->ssl);
    } else {
@@ -357,7 +361,7 @@ dtls_srtp_create(srtp_t *srtp, unsigned char *key, int key_len, unsigned char *s
    memcpy(policy.key, key, key_len);
    memcpy(policy.key + key_len, salt, salt_len);
    policy.next = NULL;
-   
+
    ret = srtp_create(srtp, &policy);
    if (ret != err_status_ok) {
       return -1;
@@ -414,7 +418,10 @@ dtls_srtp_setup(dtls_ctx_t *dtls, snw_ice_session_t *session, snw_ice_component_
          component->id, component->stream->id);
    dtls->state = DTLS_STATE_CONNECTED;
    ice_dtls_handshake_done(session, component);
-     
+
+   // create sctp context on top of dtls
+   dtls->sctp = snw_ice_sctp_create(session->ice_ctx, dtls, 5000);
+
    return 0;
 }
 
@@ -484,13 +491,14 @@ dtls_process_incoming_msg(dtls_ctx_t *dtls, char *buf, uint16_t len) {
    }
    component = (snw_ice_component_t*)dtls->component;
    log = component->stream->session->ice_ctx->log;
-   
+
+   DEBUG(log, "incoming dtls data, %p", component);
 
    written = BIO_write(dtls->in_bio, buf, len);
    if (written != len) {
       ERROR(log, "failed to write, written=%u, len=%u", written, len);
    } else {
-      TRACE(log, "dtls message, len=%u, written-%u",len, written);
+      //DEBUG(log, "dtls message, len=%u, written=%u",len, written);
    }
 
    // http://net-snmp.sourceforge.net/wiki/index.php/DTLS_Implementation_Notes
@@ -503,14 +511,17 @@ dtls_process_incoming_msg(dtls_ctx_t *dtls, char *buf, uint16_t len) {
          ERROR(log,"ssl read error, ret=%d, err=%s", read, error);
          return -2;
       }
+      //ERROR(log, "ssl read failed, ret=%d", ret);
    }
 
    if (!SSL_is_init_finished(dtls->ssl)) {
+      //ERROR(log, "not finished");
       return -3;
    }
 
    if (dtls->state == DTLS_STATE_CONNECTED) {
-      WARN(log,"dtls data not supported, ret=%u",ret);
+      DEBUG(log,"dtls sctp data, sctp=%p, ret=%u", dtls->sctp, ret);
+      snw_ice_sctp_data_from_dtls(dtls->sctp, data, ret);
    } else {
       dtls_established(dtls);
    }
@@ -518,16 +529,65 @@ dtls_process_incoming_msg(dtls_ctx_t *dtls, char *buf, uint16_t len) {
    return 0;
 }
 
+int
+dtls_send_sctp_data(dtls_ctx_t *dtls, char *buf, int len) {
+  snw_log_t *log = 0;
+  int ret = 0;
+
+  if (!dtls || !dtls->ctx || dtls->state != DTLS_STATE_CONNECTED
+      || !buf || len <= 0)
+    return -1;
+  log = dtls->ctx->log;
+
+  ret = SSL_write(dtls->ssl, buf, len);
+  if (ret <= 0) {
+    unsigned long err = SSL_get_error(dtls->ssl, ret);
+    ERROR(log, "Error sending sctp dtls data: %s", ERR_reason_error_string(err));
+  }
+
+  return ret;
+}
+
+void
+dtls_notify_sctp_data(dtls_ctx_t *dtls, char *buf, int len) {
+  snw_log_t *log = 0;
+  snw_ice_component_t *component = 0;
+  snw_ice_stream_t *stream = 0;
+
+  if (!dtls || !dtls->ctx || !buf || len <= 0) return;
+  log = dtls->ctx->log;
+
+  component = (snw_ice_component_t *)dtls->component;
+  if (!component) {
+    ERROR(log, "component not found");
+    return;
+  }
+
+  stream = component->stream;
+  if (!stream) {
+    ERROR(log, "stream not found");
+    return;
+  }
+
+  DEBUG(log, "got sctp data for user application, echo back");
+
+  //FIXME: broadcast data in room
+  snw_ice_sctp_send_data(dtls->sctp, buf, len);
+
+  return;
+}
+
+
 void
 dtls_free(dtls_ctx_t *dtls) {
 
    if(!dtls)
       return;
-   
+
    if(!dtls->ssl) {
       SSL_free(dtls->ssl);
    }
-  
+
    //FIXME: free bio structs
    dtls->in_bio = 0;
    dtls->out_bio = 0;
@@ -542,8 +602,10 @@ dtls_free(dtls_ctx_t *dtls) {
          srtp_dealloc(dtls->srtp_out);
          dtls->srtp_out = NULL;
       }
-      
    }
+
+   if (dtls->sctp)
+     snw_ice_sctp_free(dtls->sctp);
 
    free(dtls);
    return;

@@ -9,6 +9,7 @@ include(CheckTypeSize)
 add_subdirectory(cice EXCLUDE_FROM_ALL)
 add_subdirectory(wslay EXCLUDE_FROM_ALL)
 add_subdirectory(json-c EXCLUDE_FROM_ALL)
+add_subdirectory(3party/usrsctp EXCLUDE_FROM_ALL)
 #add_subdirectory(rtmp EXCLUDE_FROM_ALL)
 
 configure_file( core/config.in.h ${CMAKE_BINARY_DIR}/generated/config.h )
@@ -163,12 +164,11 @@ else ()
   MESSAGE(FATAL_ERROR "FFMPEG not found")
 endif ()
 
-
-
 target_link_libraries(snowem PUBLIC
   cice_static
   wslay
   json-c
+  usrsctp
   #rtmp
   ${DL_LIBRARIES}
   ${OPENSSL_LIBRARIES}

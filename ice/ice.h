@@ -77,7 +77,7 @@ struct snw_ice_context {
    /* mempools for fixed-size objects, fast in (de)allocation */
    snw_mempool_t  *stream_mempool;
    snw_mempool_t  *component_mempool;
-   
+
    SSL_CTX        *ssl_ctx;
    char            local_fingerprint[160];
 

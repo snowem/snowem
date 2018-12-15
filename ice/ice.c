@@ -25,6 +25,7 @@
 #include "ice_channel.h"
 #include "ice_session.h"
 #include "ice_stream.h"
+#include "ice/sctp.h"
 #include "json-c/json.h"
 #include "sdp.h"
 #include "process.h"
@@ -97,7 +98,7 @@ snw_ice_dispatch_msg(int fd, short int event,void* data) {
       ret = snw_shmmq_dequeue(ice_ctx->task_ctx->req_mq, buf, MAX_BUFFER_SIZE, &len, &flowid);
       if ((len == 0 && ret == 0) || (ret < 0))
          return;
-      
+
       buf[len] = 0; // null-terminated string
       snw_ice_api_handler(ice_ctx,buf,len,flowid);
    }
@@ -162,16 +163,14 @@ ice_rtp_established(snw_ice_session_t *session) {
 
    DEBUG(log, "ice connection established, streamid=%u", session->streamid);
    if ( IS_FLAG(session,ICE_SUBSCRIBER) ) {
-      //FIXME: request fir
+      //TODO: request fir
       /*root["cmd"] = SNW_ICE;
       root["subcmd"] = SNW_ICE_FIR;
       root["flowid"] = session->flowid;
       output = writer.write(root);
       snw_shmmq_enqueue(ice_ctx->task_ctx->resp_mq,0,output.c_str(),output.size(),session->flowid);*/
    } else if IS_FLAG(session,ICE_PUBLISHER) {
-
-      //FIXME: do something
-
+      //broadcast info
    } else if IS_FLAG(session,ICE_REPLAY) {
       // start replaying a stream.
    }
@@ -239,7 +238,7 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    struct event *q_event;
    int api_num = sizeof(g_ice_apis)/sizeof(snw_ice_api_t);
    int handler_num = sizeof(g_ice_handlers)/sizeof(snw_ice_handlers_t);
-   
+
    if (!ctx) return;
 
    ice_ctx = (snw_ice_context_t *)malloc(sizeof(snw_ice_context_t));
@@ -249,13 +248,13 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    ice_ctx->log = ctx->log;
    ice_ctx->task_ctx = task_ctx;
 
-   if (ctx->ice_log_enabled) 
+   if (ctx->ice_log_enabled)
       ice_set_log_callback(snw_ice_log_cb,ice_ctx);
 
    ice_ctx->ev_base = ctx->ev_base;
    ice_ctx->ev_ctx = create_event_ctx(ice_ctx->ev_base);
    if (!ice_ctx->ev_ctx) return;
-  
+
    snw_ice_sdp_init(ice_ctx);
    snw_ice_session_init(ice_ctx);
    if (snw_ice_channel_init(ice_ctx) < 0) {
@@ -264,9 +263,9 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    snw_ice_stream_mempool_init(ice_ctx);
    snw_component_mempool_init(ice_ctx);
 
-   ice_ctx->rtcpmux_enabled = 0; 
-   ice_ctx->ice_lite_enabled = 1; 
-   ice_ctx->ipv6_enabled = 0; 
+   ice_ctx->rtcpmux_enabled = 0;
+   ice_ctx->ice_lite_enabled = 1;
+   ice_ctx->ipv6_enabled = 0;
    ice_ctx->ice_tcp_enabled = 0;
    ice_ctx->recording_enabled = ctx->recording_enabled;
    ice_ctx->recording_folder = ctx->recording_folder;
@@ -291,6 +290,7 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
    }
 
    snw_rtp_init(ice_ctx);
+   snw_ice_sctp_init(ice_ctx);
 
    event_base_dispatch(ctx->ev_base);
    return;
