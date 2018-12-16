@@ -42,12 +42,15 @@ struct snw_ice_component {
    dtls_ctx_t       *dtls;
    snw_ice_stream_t *stream;
    candidate_head_t  remote_candidates;
-   int64_t           fir_latest;   
+   int64_t           fir_latest;
    uint8_t           fir_seq;
 
    //TODO: store them in rtp_nack module
    rtp_slidewin_t    a_slidewin;
    rtp_slidewin_t    v_slidewin;
+
+   //callbacks
+   void (*recv_sctp_data)(void *component, char *buffer, int len);
 
    LIST_ENTRY(snw_ice_component) list;
 };

@@ -449,7 +449,7 @@ int snw_ice_sctp_outcoming_data(void *user_data, void *buf, size_t len, uint8_t 
   log = sctp->dtls->ctx->log;
 
   DEBUG(log, "sending sctp data to dtls, len=%zu", len);
-  dtls_send_sctp_data(sctp->dtls, buf, len);
+  dtls_send_sctp_outcoming_data(sctp->dtls, buf, len);
 
   return 0;
 }
