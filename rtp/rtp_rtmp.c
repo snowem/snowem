@@ -22,16 +22,16 @@ int
 snw_rtp_rtmp_init(void *c) {
    snw_ice_context_t *ctx = (snw_ice_context_t*)c;
    snw_log_t *log = 0;
-   
+
    if (!ctx) return -1;
    log = ctx->log;
-   
+
    if (MODULE_IS_FLAG(g_rtp_rtmp_module,M_FLAGS_INIT)) {
       return -1;
    }
 
    TRACE(log,"init rtp rtmp");
-   MODULE_IS_FLAG(g_rtp_rtmp_module,M_FLAGS_INIT);
+   MODULE_SET_FLAG(g_rtp_rtmp_module,M_FLAGS_INIT);
 
    return 0;
 }

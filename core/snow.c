@@ -39,10 +39,13 @@
 #include "websocket/websocket.h"
 
 int
+snw_sig_broadcast_new_stream(snw_context_t *ctx,
+     snw_channel_t *channel, uint32_t streamid);
+
+int
 snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
-  const char *str = 0;
   uint32_t streamid = 0;
   uint32_t channelid = 0;
   snw_channel_t *channel = 0;
@@ -73,11 +76,14 @@ snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowi
     stream->type = STREAM_TYPE_PUBLISHER;
 
     // inform ice component of new status
-    /*json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
-    str = snw_json_msg_to_string(jobj);
-    if (!str) return -1;
-    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);*/
+    /*{
+      const char *str = 0;
+      json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
+      json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
+      str = snw_json_msg_to_string(jobj);
+      if (!str) return -1;
+      snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
+    }*/
 
     // broadcast new stream
     snw_sig_broadcast_new_stream(ctx, channel, streamid);
@@ -95,20 +101,16 @@ snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowi
 
 int
 snw_core_ice_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  const char *str = 0;
-  uint32_t channelid = 0;
-
   //FIXME: do we need this?
-  DEBUG(log,"play req, flowid=%u, channelid=%u",
-    flowid, channelid);
-
-  /*json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-  json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PLAY));
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);*/
+  /*{
+    json_object *jobj = (json_object*)data;
+    const char *str = 0;
+    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
+    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PLAY));
+    str = snw_json_msg_to_string(jobj);
+    if (!str) return -1;
+    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
+  }*/
 
   return 0;
 }
@@ -117,12 +119,11 @@ snw_core_ice_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) 
 
 int
 snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
-  snw_log_t *log = ctx->log;
   uint32_t flowid = conn->flowid;
   uint32_t api = 0;
   const char *str = 0;
   int ret = -1;
- 
+
   api = snw_json_msg_get_int(jobj,"api");
   switch(api) {
      case SNW_ICE_PUBLISH:
@@ -140,7 +141,6 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
     str = snw_json_msg_to_string(jobj);
     if (!str) return -1;
     snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-    //snw_shmmq_enqueue(ctx->ice_task->req_mq, 0, data, len, conn->flowid);
   }
 
   return 0;
@@ -482,10 +482,8 @@ snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
 void
 snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
   snw_log_t *log = ctx->log;
-  json_object *notify = 0;
-  const char *str = 0;
 
-  if (!channel 
+  if (!channel
       || channel->flows.idx >= SNW_USER_NUM_MAX) {
     WARN(log, "channel is full, id=%d", channel->id);
     return;

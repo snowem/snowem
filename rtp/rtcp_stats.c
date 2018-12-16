@@ -44,7 +44,7 @@ snw_rtcp_stats_new(snw_rtp_ctx_t *ctx, rtcp_stats_head_t *s, uint32_t ssrc) {
 
    if (!ctx) return 0;
    log = ctx->log;
-   
+
    stats = SNW_MALLOC(snw_rtcp_stats_t);
    if (!stats) {
       ERROR(log,"not enough memory");
@@ -93,7 +93,7 @@ snw_rtp_slidewin_print(snw_rtp_ctx_t *ctx, rtp_slidewin_t *win) {
 
    if (!ctx) return;
    log = ctx->log;
-  
+
    seq = win->seqlist[win->head].seq ;
    DEBUG(log,"slide window, head=%u, head_seq=%u", win->head, seq);
    for (i=0; i< RTP_SLIDEWIN_SIZE; i++) {

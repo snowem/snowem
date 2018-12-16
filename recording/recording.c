@@ -25,7 +25,7 @@ snw_record_init(void *c) {
   static int is_init = 0;
   snw_ice_context_t *ctx = (snw_ice_context_t*)c;
   snw_log_t *log = 0;
-   
+
   if (!ctx) return -1;
   log = ctx->log;
 
@@ -124,9 +124,9 @@ snw_rtp_module_t g_rtp_record_module = {
    0,/*ctx*/
    RTP_AUDIO | RTP_VIDEO | RTP_RECORD,
    0,
-   snw_record_init, 
-   snw_record_handle_pkg_in, 
-   snw_record_handle_pkg_out, 
+   snw_record_init,
+   snw_record_handle_pkg_in,
+   snw_record_handle_pkg_out,
    snw_record_fini,
    0 /*next*/
 };
@@ -266,7 +266,7 @@ snw_record_write_raw_data(snw_record_ctx_t *r, int audio, int64_t ts,  char *dat
   if (!r || !r->log) return -1;
 
   av_init_packet(&av_packet);
-  av_packet.data = data;
+  av_packet.data = (unsigned char*)data;
   av_packet.size = len;
   av_packet.pts = ts;
   av_packet.dts = ts;
@@ -285,7 +285,6 @@ snw_record_write_raw_data(snw_record_ctx_t *r, int audio, int64_t ts,  char *dat
 
 int
 snw_record_write_audio_frame(snw_record_ctx_t *r, char* buf, int len) {
-  snw_log_t *log = 0;
   rtp_hdr_t *hdr;
   int hdrlen = 0;
   uint16_t cur_seq = 0;
@@ -293,7 +292,6 @@ snw_record_write_audio_frame(snw_record_ctx_t *r, char* buf, int len) {
   int64_t written_ts = 0;
 
   if (!r || !r->log) return -1;
-  log = r->log;
 
   //parsing rtp header
   hdr = (rtp_hdr_t*)buf;
@@ -311,7 +309,7 @@ snw_record_write_audio_frame(snw_record_ctx_t *r, char* buf, int len) {
   if (r->first_audio_ts == 0) {
     r->first_audio_ts = cur_ts;
   }
-  
+
   if (cur_ts - r->first_audio_ts < 0) {
      cur_ts += 0xFFFFFFFF;
   }
@@ -319,7 +317,7 @@ snw_record_write_audio_frame(snw_record_ctx_t *r, char* buf, int len) {
   if (!r->has_keyframe)
     return -1;
 
-  written_ts = (cur_ts - r->first_audio_ts) / 
+  written_ts = (cur_ts - r->first_audio_ts) /
      (r->audio_stream->codec->sample_rate / r->audio_stream->time_base.den); 
   written_ts += r->audio_offset_ts / (1000 / r->audio_stream->time_base.den);
   snw_record_write_raw_data(r,1,written_ts,buf+hdrlen,len-hdrlen);
@@ -329,12 +327,10 @@ snw_record_write_audio_frame(snw_record_ctx_t *r, char* buf, int len) {
 
 int
 snw_record_write_vp8_frame(snw_record_ctx_t *r) {
-  snw_log_t *log = 0;
   uint64_t cur_ts = 0;
   uint64_t written_ts = 0;
 
   if (!r || !r->log) return -1;
-  log = r->log;
 
   cur_ts = r->cur_ts;
   if (cur_ts - r->first_video_ts < 0) {
@@ -357,10 +353,8 @@ snw_record_write_vp8_frame(snw_record_ctx_t *r) {
 int
 snw_record_handle_vp8_frame(snw_record_ctx_t *r, int start_frame,
     int end_frame, char* data, int len) {
-  snw_log_t *log = 0;
 
   if (!r || !r->log) return -1;
-  log = r->log;
 
   //DEBUG(log,"video state, state=%u, start=%u, end=%u",
   //    r->video_state, start_frame, end_frame);
@@ -547,10 +541,8 @@ snw_record_write_video_frame(snw_record_ctx_t *r, char* buf, int len) {
 
 int
 snw_record_write_frame(snw_record_ctx_t *r, int pkt_type, char *data, int len) {
-  snw_log_t *log = 0;
 
   if (!r || !r->log) return -1;
-  log = r->log;
 
   if (pkt_type == RTP_AUDIO) {
     snw_record_write_audio_frame(r, data, len);
