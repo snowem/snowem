@@ -61,16 +61,11 @@ snw_rtp_audio_init(void *c) {
 int
 snw_rtp_audio_handle_pkg_in(void *data, char *buf, int buflen) {
    snw_rtp_ctx_t *ctx = (snw_rtp_ctx_t*)data;
-   snw_log_t *log;
    int i = 0;
 
    if (!ctx || !buf || buflen <= MIN_RTP_HEADER_SIZE) {
       return -1;
    }
-   log = ctx->log;
-   
-   //print_rtp_header(log,buf,buflen,"audio"); 
-   //HEXDUMP(log,(char*)buf,buflen,"rtp");
 
    for (i=0; ; i++) {
       snw_rtp_module_t *m = g_rtp_audio_modules[i];
@@ -82,30 +77,24 @@ snw_rtp_audio_handle_pkg_in(void *data, char *buf, int buflen) {
          m->handle_pkg_in(ctx,buf,buflen);
    }
 
-
    return 0;
 }
 
 int
 snw_rtp_audio_handle_pkg_out(void *data, char *buf, int buflen) {
    snw_rtp_ctx_t *ctx = (snw_rtp_ctx_t*)data;
-   snw_log_t *log;
    int i = 0;
 
    if (!ctx || !buf || buflen <= MIN_RTP_HEADER_SIZE) {
       return -1;
    }
-   log = ctx->log;
-
-   //print_rtp_header(log,buf,buflen,"audio"); 
-   //HEXDUMP(log,(char*)buf,buflen,"rtp");
 
    for (i=0; ; i++) {
       snw_rtp_module_t *m = g_rtp_audio_modules[i];
       if (!m) break;
 
-      DEBUG(log,"audio-out handling, name=%s, m_pkt_type=%u, pkt_type=%u", 
-               m->name, m->pkt_type, ctx->pkt_type);
+      //DEBUG(log,"audio-out handling, name=%s, m_pkt_type=%u, pkt_type=%u", 
+      //         m->name, m->pkt_type, ctx->pkt_type);
       if (ctx->pkt_type & m->pkt_type)
          m->handle_pkg_out(ctx,buf,buflen);
    }
