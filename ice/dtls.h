@@ -88,6 +88,9 @@ int
 dtls_process_incoming_msg(dtls_ctx_t *dtls, char *buf, uint16_t len);
 
 int
+dtls_send_sctp_outcoming_data(dtls_ctx_t *dtls, char *buf, int len);
+
+void
 dtls_send_sctp_data(dtls_ctx_t *dtls, char *buf, int len);
 
 void

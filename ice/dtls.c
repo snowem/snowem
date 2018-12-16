@@ -530,7 +530,7 @@ dtls_process_incoming_msg(dtls_ctx_t *dtls, char *buf, uint16_t len) {
 }
 
 int
-dtls_send_sctp_data(dtls_ctx_t *dtls, char *buf, int len) {
+dtls_send_sctp_outcoming_data(dtls_ctx_t *dtls, char *buf, int len) {
   snw_log_t *log = 0;
   int ret = 0;
 
@@ -552,7 +552,6 @@ void
 dtls_notify_sctp_data(dtls_ctx_t *dtls, char *buf, int len) {
   snw_log_t *log = 0;
   snw_ice_component_t *component = 0;
-  snw_ice_stream_t *stream = 0;
 
   if (!dtls || !dtls->ctx || !buf || len <= 0) return;
   log = dtls->ctx->log;
@@ -563,20 +562,30 @@ dtls_notify_sctp_data(dtls_ctx_t *dtls, char *buf, int len) {
     return;
   }
 
-  stream = component->stream;
-  if (!stream) {
-    ERROR(log, "stream not found");
+  DEBUG(log, "got sctp data for user application, echo back");
+  if (!component->recv_sctp_data) {
+    ERROR(log, "no recv callback defined");
     return;
   }
-
-  DEBUG(log, "got sctp data for user application, echo back");
+  component->recv_sctp_data(component, buf, len);
 
   //FIXME: broadcast data in room
-  snw_ice_sctp_send_data(dtls->sctp, buf, len);
+  //snw_ice_sctp_send_data(dtls->sctp, buf, len);
 
   return;
 }
 
+void
+dtls_send_sctp_data(dtls_ctx_t *dtls, char *buf, int len) {
+  snw_log_t *log = 0;
+
+  if (!dtls || !dtls->sctp || !buf || len <= 0) return;
+  log = dtls->ctx->log;
+
+  DEBUG(log, "send sctp data from component");
+  snw_ice_sctp_send_data(dtls->sctp, buf, len);
+  return;
+}
 
 void
 dtls_free(dtls_ctx_t *dtls) {

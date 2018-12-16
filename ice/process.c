@@ -737,7 +737,7 @@ ice_rtp_incoming_msg(snw_ice_session_t *session, snw_ice_stream_t *stream,
    ssrc = ntohl(header->ssrc);
    timestamp = ntohl(header->ts);
    seq = ntohs(header->seq);
-   /* XXX: stream ssrc should be set by sdp offer/answer? */
+
    if (ssrc != stream->remote_audio_ssrc
        && ssrc != stream->remote_video_ssrc) {
       ERROR(log, "wrong ssrc, ssrc=%u, ts=%u, seq=%u", 
@@ -813,7 +813,7 @@ ice_rtcp_incoming_msg(snw_ice_session_t *session, snw_ice_stream_t *stream,
       DEBUG(log, "decrypting srtp pkt failed, ret=%u, len=%d, buflen=%d", ret, len, buflen);
       return;
    }
-   
+
    //forward to rtcp handler
    rtp_ctx->stream = stream;
    rtp_ctx->component = component; 
@@ -821,7 +821,7 @@ ice_rtcp_incoming_msg(snw_ice_session_t *session, snw_ice_stream_t *stream,
    rtp_ctx->ntp_curtime = rtp_ctx->epoch_curtime + NTP_EPOCH_DIFF;
    rtp_ctx->pkt_type = RTP_RTCP;
    snw_rtp_handle_pkg_in(rtp_ctx,buf,buflen);
-  
+
    return;
 }
 
@@ -877,6 +877,31 @@ void ice_data_recv_cb(agent_t *agent, uint32_t stream_id,
 }
 
 
+void snw_ice_component_recv_sctp_data_cb(void *c, char *buf, int len) {
+  snw_ice_component_t *component = (snw_ice_component_t *)c;
+  //snw_ice_stream_t *stream = 0;
+  //snw_ice_session_t *session = 0;
+  snw_log_t *log = 0;
+
+  if (!buf || !component || !component->dtls || !component->stream
+      || !component->stream->session || !component->stream->session->ice_ctx)
+    return;
+  log = component->stream->session->ice_ctx->log;
+  //session = component->stream->session;
+
+  DEBUG(log, "component got sctp data, len=%u", len);
+  //echo back (to be removed)
+  dtls_send_sctp_data(component->dtls, buf, len);
+
+  //TODO: implement sctp data broadcasting
+  // step 1: change snw_channel_t to snw_subscribers_t (for a session)
+  // step 2: create room struct to host all publishers of a channel id (to be a room id)
+  // step 3: broadcast sctp among publishers in a room
+  // Alternative: use unified plan to be flexible on add/remove a stream in a room
+
+  return;
+}
+
 snw_ice_component_t*
 snw_ice_create_media_component(snw_ice_session_t *session, snw_ice_stream_t *stream, uint32_t cid, int is_rtcp) {
    snw_ice_component_t *rtp = 0;
@@ -889,6 +914,7 @@ snw_ice_create_media_component(snw_ice_session_t *session, snw_ice_stream_t *str
    rtp->stream = stream;
    rtp->id = cid;
    rtp->is_started = 0;
+   rtp->recv_sctp_data = snw_ice_component_recv_sctp_data_cb;
    TAILQ_INIT(&rtp->remote_candidates);
    snw_component_insert(&stream->components, rtp);
    if (is_rtcp)
@@ -1061,7 +1087,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    uint32_t channelid = 0;
    uint32_t streamid = 0;
    int is_new = 0;
-   
+
    if (!jobj) return;
 
    channelid = snw_json_msg_get_int(jobj,"channelid");
@@ -1069,7 +1095,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    streamid = snw_json_msg_get_int(jobj,"streamid");
    if (channelid == (uint32_t)-1 || stream_type == (uint32_t)-1 || streamid == (uint32_t)-1)
      return;
- 
+
    DEBUG(log,"connect msg, streamid=%u", streamid);
    session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,streamid,&is_new);
    if (!session) {
@@ -1094,7 +1120,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
 
    DEBUG(log,"init new session, channelid=%u, stream_type=%u, flowid=%u", 
          channelid, stream_type, session->flowid);
-   
+
    session->channelid = channelid;
    session->flowid = flowid;
    session->channel = channel;
