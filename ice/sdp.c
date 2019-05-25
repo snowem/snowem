@@ -170,11 +170,12 @@ snw_ice_sdp_add_global_attrs(snw_ice_session_t *session, int audio, int video, c
       snprintf(buffer, 512, " %s", "video");
       strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
    }
-   //TODO: option for data
-   if (1 /*data*/) {
-      snprintf(buffer, 512, " %s", "data");
-      strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
-   }
+
+   //TODO: option for data channel
+   //if (1 /*data*/) {
+   //   snprintf(buffer, 512, " %s", "data");
+   //   strncat(sdp, buffer, ICE_BUFSIZE - strlen(sdp));
+   //}
 
    strncat(sdp, "\r\n", ICE_BUFSIZE - strlen(sdp));
 
@@ -561,7 +562,7 @@ snw_ice_sdp_create(snw_ice_session_t *session) {
    snw_ice_sdp_add_global_attrs(session,1,1,sdp);
    snw_ice_sdp_add_mline(session,0,sdp);
    snw_ice_sdp_add_mline(session,1,sdp);
-   snw_ice_sdp_add_datachannel(session,sdp);
+   //snw_ice_sdp_add_datachannel(session,sdp);
 
    return sdp;
 }
