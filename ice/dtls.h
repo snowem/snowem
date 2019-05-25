@@ -37,6 +37,37 @@
 #define SRTP_MASTER_SALT_LENGTH  14
 #define SRTP_MASTER_LENGTH (SRTP_MASTER_KEY_LENGTH + SRTP_MASTER_SALT_LENGTH)
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+
+#include <openssl/bio.h>
+#include <openssl/rsa.h>
+#include <openssl/bn.h>
+
+#define BIO_get_data(b)                 (b)->ptr
+#define BIO_set_data(b,v)               (b)->ptr = v
+#define BIO_get_init(b)                 (b)->init
+#define BIO_set_init(b,v)               (b)->init = v
+#define BIO_get_next(b,v)               (b)->next_bio
+#define BIO_set_next(b,v)               (b)->next_bio = v
+#define BIO_get_shutdown(b)             (b)->shutdown
+#define BIO_set_shutdown(b,v)           (b)->shutdown = v
+#define BIO_get_retry_reason(b)         (b)->retry_reason
+#define BIO_set_retry_reason(b,v)       (b)->retry_reason = v
+
+#define BIO_meth_set_write(b,f)         (b)->bwrite = (f)
+#define BIO_meth_set_read(b,f)          (b)->bread = (f)
+#define BIO_meth_set_puts(b,f)          (b)->bputs = (f)
+#define BIO_meth_set_gets(b,f)          (b)->bgets = (f)
+#define BIO_meth_set_ctrl(b,f)          (b)->ctrl = (f)
+#define BIO_meth_set_create(b,f)        (b)->create = (f)
+#define BIO_meth_set_destroy(b,f)       (b)->destroy = (f)
+#define BIO_meth_set_callback_ctrl(b,f) (b)->callback_ctrl = (f)
+
+BIO_METHOD* BIO_meth_new(int type, const char* name);
+
+#endif /* OPENSSL < 1.1.0 */
+
+
 /* dtls type */
 enum  {
    DTLS_TYPE_ACTPASS = 0,
@@ -62,6 +93,7 @@ struct dtls_ctx {
    BIO *in_bio;
    BIO *out_bio;
    BIO *dtls_bio;
+   BIO_METHOD *method;
 
    /* srtp context */
    unsigned char material[SRTP_MASTER_LENGTH*2];

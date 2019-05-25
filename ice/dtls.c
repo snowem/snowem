@@ -28,23 +28,21 @@
 
 void
 dtls_callback(const SSL *ssl, int where, int ret) {
-   //FIXME: check useful ssl events
+   //TODO: check useful ssl events
    return;
 }
 
 int
 dtls_verify_cb(int preverify_ok, X509_STORE_CTX *ctx) {
-   //FIXME: do real verification
+   //TODO: do real verification
    return 1;
 }
 
 
 int
 dtls_bio_handshake_new(BIO *bio) {
-  
-   bio->init = 1;
-   bio->flags = 0;
-   
+   BIO_set_init(bio, 1);
+   BIO_set_flags(bio, 0);
    return 1;
 }
 
@@ -53,10 +51,9 @@ dtls_bio_handshake_free(BIO *bio) {
 
    if (bio == NULL)
       return 0;
-      
-   bio->ptr = NULL;
-   bio->init = 0;
-   bio->flags = 0;
+   BIO_set_data(bio, 0);
+   BIO_set_init(bio, 0);
+   BIO_set_flags(bio, 0);
    return 1;
 }
 
@@ -82,7 +79,7 @@ dtls_send_data(dtls_ctx_t *dtls, int len) {
       return -3;
    }
 
-   //FIXME: a loop is needed to read and send all data?
+   //TODO: a loop is needed to read and send all data?
    sent = BIO_read(dtls->out_bio, data, DTLS_MTU_SIZE);
    if (sent <= 0) {
       ERROR(log, "failed to read dtls data, sent=%d", sent);
@@ -96,7 +93,7 @@ dtls_send_data(dtls_ctx_t *dtls, int len) {
    if (bytes < sent) {
       ERROR(log, "failed to send dtls message, cid=%u, sid=%u, len=%d", 
             component->id, stream->id, bytes);
-   } 
+   }
 
    return 0;
 }
@@ -107,13 +104,13 @@ dtls_bio_handshake_write(BIO *bio, const char *in, int inl) {
    dtls_ctx_t *dtls = 0;
    int ret = 0;
 
-   dtls = (dtls_ctx_t *)bio->ptr;
+   dtls = (dtls_ctx_t *)BIO_get_data(bio);
    log = dtls->ctx->log;
 
-   ret = BIO_write(bio->next_bio, in, inl);
+   ret = BIO_write(BIO_next(bio), in, inl);
 
    TRACE(log, "write dtls msg to filter, len=%d, written_len=%ld", inl, ret);
-   dtls_send_data(dtls,ret); 
+   dtls_send_data(dtls,ret);
 
    return ret;
 }
@@ -123,7 +120,7 @@ dtls_bio_handshake_read(BIO *bio, char *buf, int len) {
    snw_log_t *log = 0;
    dtls_ctx_t *dtls = 0;
 
-   dtls = (dtls_ctx_t *)bio->ptr;
+   dtls = (dtls_ctx_t *)BIO_get_data(bio);
    log = dtls->ctx->log;
 
    DEBUG(log, "dtls read, len=%d", len);
@@ -145,9 +142,10 @@ dtls_bio_handshake_ctrl(BIO *bio, int cmd, long num, void *ptr) {
    return 0;
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static BIO_METHOD dtls_bio_handshake_methods = {
    BIO_TYPE_FILTER,
-   "dtls handshake",
+   "dtls layer",
    dtls_bio_handshake_write,
    dtls_bio_handshake_read,
    NULL,
@@ -157,6 +155,11 @@ static BIO_METHOD dtls_bio_handshake_methods = {
    dtls_bio_handshake_free,
    NULL
 };
+
+BIO_METHOD* BIO_meth_new(int type, const char* name) {
+   return &dtls_bio_handshake_methods;
+}
+#endif /* OPENSSL < 1.1.0 */
 
 int
 srtp_print_fingerprint(char *buf, unsigned int len, 
@@ -182,7 +185,11 @@ dtls_init(snw_ice_context_t *ctx, char *server_pem, char *server_key) {
    X509 *cert = 0;
    unsigned int size;
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
    ctx->ssl_ctx = SSL_CTX_new(DTLSv1_method());
+#else
+   ctx->ssl_ctx = SSL_CTX_new(DTLS_method());
+#endif
    if (!ctx->ssl_ctx) {
       ERROR(log, "failed to create ssl context");
       return -1;
@@ -230,7 +237,7 @@ dtls_init(snw_ice_context_t *ctx, char *server_pem, char *server_key) {
       BIO_free_all(certbio);
       return -8;
    }
-   
+
    srtp_print_fingerprint((char *)&ctx->local_fingerprint,160,fingerprint,size);
    DEBUG(log, "fingerprint of certificate: %s", ctx->local_fingerprint);
    X509_free(cert);
@@ -258,7 +265,7 @@ dtls_create(snw_ice_context_t *ice_ctx, void *component, int type) {
 
    dtls = (dtls_ctx_t*)malloc(sizeof(dtls_ctx_t));
    if (!dtls) return 0;
-   
+
    memset(dtls,0,sizeof(dtls_ctx_t));
    dtls->ctx = ice_ctx;
    dtls->component = component;
@@ -274,13 +281,24 @@ dtls_create(snw_ice_context_t *ice_ctx, void *component, int type) {
 
    dtls->out_bio = BIO_new(BIO_s_mem());
    if (!dtls->out_bio)  goto fail;
-   
+
    BIO_set_mem_eof_return(dtls->out_bio, -1);
 
-   dtls->dtls_bio = BIO_new(&dtls_bio_handshake_methods);
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+   dtls->method = BIO_meth_new(BIO_TYPE_FILTER, "dtls layer");
+#else
+   dtls->method = BIO_meth_new(BIO_TYPE_FILTER, "dtls layer");
+   BIO_meth_set_read(dtls->method, dtls_bio_handshake_read);
+   BIO_meth_set_write(dtls->method, dtls_bio_handshake_write);
+   BIO_meth_set_ctrl(dtls->method, dtls_bio_handshake_ctrl);
+   BIO_meth_set_create(dtls->method, dtls_bio_handshake_new);
+   BIO_meth_set_destroy(dtls->method, dtls_bio_handshake_free);
+#endif
+
+   dtls->dtls_bio = BIO_new(dtls->method);
    if (!dtls->dtls_bio)  goto fail;
-   
-   dtls->dtls_bio->ptr = dtls;
+
+   BIO_set_data(dtls->dtls_bio,  dtls);
 
    BIO_push(dtls->dtls_bio, dtls->out_bio);
    SSL_set_bio(dtls->ssl, dtls->in_bio, dtls->dtls_bio);
