@@ -207,6 +207,7 @@ static int on_header_value(http_parser* parser, const char *data, size_t len) {
       if (pos != 0 && (bestPos == -1 || pos < bestPos)) {
         bestPos = pos;
         bestIndex = i;
+        break;
       }
     }
     if (bestPos == -1) {
