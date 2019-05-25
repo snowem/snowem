@@ -203,8 +203,7 @@ static int on_header_value(http_parser* parser, const char *data, size_t len) {
     int bestPos = -1;
     int bestIndex, i;
     for (i = 0; info->supported_subprotocols[i]; i++) {
-      int pos = header_has_value(data, len, info->supported_subprotocols[i],
-          strlen(info->supported_subprotocols[i]));
+      int pos = header_has_value(data, len, info->supported_subprotocols[i], len);
       if (pos != 0 && (bestPos == -1 || pos < bestPos)) {
         bestPos = pos;
         bestIndex = i;
