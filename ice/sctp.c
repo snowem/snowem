@@ -15,7 +15,8 @@
  *
  */
 
-#include "core/bsd_queue.h"
+#include <bsd/bsd.h>
+
 #include "core/log.h"
 #include "ice/dtls.h"
 #include "ice/ice_component.h"

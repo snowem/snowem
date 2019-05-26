@@ -18,9 +18,8 @@
 #ifndef _SNOW_RTP_RTCP_STATS_H_
 #define _SNOW_RTP_RTCP_STATS_H_
 
+#include <bsd/bsd.h>
 #include <stdint.h>
-
-#include "core/bsd_queue.h"
 
 #ifdef __cplusplus
 extern "C" {
