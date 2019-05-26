@@ -18,10 +18,10 @@
 #ifndef _SNOW_ICE_COMPONENT_H_
 #define _SNOW_ICE_COMPONENT_H_
 
+#include <bsd/bsd.h>
 #include <stdint.h>
 
 #include "cice/agent.h"
-#include "core/bsd_queue.h"
 #include "core/core.h"
 #include "ice/dtls.h"
 #include "ice/ice_types.h"

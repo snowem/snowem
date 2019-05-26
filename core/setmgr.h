@@ -22,9 +22,8 @@
 extern "C" {
 #endif
 
+#include <bsd/bsd.h>
 #include <stdint.h>
-
-#include "core/bsd_queue.h"
 
 #define MAX_CHANNEL_NUM 10000
 

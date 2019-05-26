@@ -22,7 +22,8 @@
 extern "C" {
 #endif
 
-#include "bsd_queue.h"
+#include <bsd/bsd.h>
+
 #include "types.h"
 
 /* Built-in module (msg) type */

@@ -18,10 +18,10 @@
 #ifndef _SNOW_ICE_STREAM_H_
 #define _SNOW_ICE_STREAM_H_
 
+#include <bsd/bsd.h>
 #include <inttypes.h>
 
 #include "core/core.h"
-#include "core/bsd_queue.h"
 #include "ice/dtls.h"
 #include "ice/ice_component.h"
 #include "ice/ice_types.h"

@@ -18,8 +18,8 @@
 #ifndef _ICE_PACKET_H_
 #define _ICE_PACKET_H_
 
+#include <bsd/bsd.h>
 #include <stdint.h>
-#include "core/bsd_queue.h"
 
 #define RTP_PACKET_AUDIO   0
 #define RTP_PACKET_VIDEO   1
