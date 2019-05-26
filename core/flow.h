@@ -22,9 +22,8 @@
 extern "C" {
 #endif
 
+#include <bsd/bsd.h>
 #include <stdint.h>
-
-#include "core/bsd_queue.h"
 
 #define SNW_CORE_FLOW_NET_IDX  33212368
 #define SNW_CORE_FLOW_HTTP_IDX 63212368

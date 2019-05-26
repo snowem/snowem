@@ -19,11 +19,10 @@
 #define _SNOW_ICE_ICE_H_
 
 #include <arpa/inet.h>
+#include <bsd/bsd.h>
 #include <openssl/ssl.h>
 
 #include "cice/event.h"
-
-#include "core/bsd_queue.h"
 #include "core/cache.h"
 #include "core/connection.h"
 #include "core/mempool.h"
