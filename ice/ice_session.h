@@ -21,8 +21,8 @@
 #include <stdint.h>
 
 #include "cice/agent.h"
-#include "ice/ice_channel.h"
 #include "ice/ice_stream.h"
+#include "ice/ice_subscribe.h"
 #include "ice/ice_types.h"
 #include "rtp/rtp.h"
 
@@ -39,7 +39,6 @@ enum {
 struct snw_ice_session {
    uint32_t streamid;
    uint32_t flowid;
-   uint32_t channelid;
    uint32_t publishid;
 
    snw_ice_context_t *ice_ctx;
@@ -66,7 +65,7 @@ struct snw_ice_session {
    char remote_user[32];
    char remote_pass[64];
 
-   snw_ice_channel_t  *channel;
+   snw_ice_subscribe_t  *subscribe;
 
    //rtp context
    snw_rtp_ctx_t       rtp_ctx;

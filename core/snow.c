@@ -47,14 +47,11 @@ snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowi
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
   uint32_t streamid = 0;
-  uint32_t channelid = 0;
-  snw_channel_t *channel = 0;
   snw_stream_t *stream = 0;
 
   streamid = snw_json_msg_get_int(jobj,"streamid");
-  channelid = snw_json_msg_get_int(jobj,"channelid");
 
-  if (streamid == (uint32_t)-1 || channelid == (uint32_t)-1)
+  if (streamid == (uint32_t)-1)
     return -1;
 
   stream = snw_stream_search(ctx->stream_cache, streamid);
@@ -63,38 +60,23 @@ snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowi
     return -1;
   }
 
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel || stream->channelid != channelid) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return -1;
-  }
+  DEBUG(log,"publish req, flowid=%u, type=%u", flowid, stream->type);
+  stream->type = STREAM_TYPE_PUBLISHER;
 
-  DEBUG(log,"publish req, flowid=%u, channelid=%u, type=%u",
-    flowid, channelid, channel->type);
+  //TODO: broadcast info to external party
 
-  if (channel->type == SNW_CONF_CHANNEL_TYPE) {
-    stream->type = STREAM_TYPE_PUBLISHER;
+  // inform ice component of new status
+  /*{
+    const char *str = 0;
+    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
+    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
+    str = snw_json_msg_to_string(jobj);
+    if (!str) return -1;
+    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
+  }*/
 
-    // inform ice component of new status
-    /*{
-      const char *str = 0;
-      json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-      json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
-      str = snw_json_msg_to_string(jobj);
-      if (!str) return -1;
-      snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-    }*/
-
-    // broadcast new stream
-    snw_sig_broadcast_new_stream(ctx, channel, streamid);
-    return 0;
-  }
-
-  if (channel->type != SNW_P2P_CHANNEL_TYPE
-      && channel->type != SNW_LIVE_CHANNEL_TYPE) {
-    ERROR(log, "unknow channel type, type=%u", channel->type);
-    return -2;
-  }
+  // broadcast new stream
+  //snw_sig_broadcast_new_stream(ctx, channel, streamid);
 
   return 0;
 }
@@ -160,6 +142,7 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
   uint32_t api = 0;
   const char *str = 0;
   int ret = -1;
+  snw_log_t *log = ctx->log;
 
   api = snw_json_msg_get_int(jobj,"api");
   switch(api) {
@@ -168,6 +151,7 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
         return ret;
      case SNW_ICE_PUBLISH:
         ret = snw_core_ice_publish_msg(ctx,jobj,0,flowid);
+        ERROR(log, "ice publish, ret=%u", ret);
         break;
      case SNW_SIG_PLAY:
         ret = snw_core_ice_play_msg(ctx,jobj,0,flowid);
@@ -180,6 +164,7 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
   if (ret == 0) {
     str = snw_json_msg_to_string(jobj);
     if (!str) return -1;
+    ERROR(log, "forward msg to ice, len=%u, str=%s", strlen(str), str);
     snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
   }
 
@@ -209,7 +194,7 @@ snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   uint32_t channel_type = 0;
   uint32_t peerid = 0;
   int is_new = 0;
-  
+
   peerid = snw_json_msg_get_int(jobj,"id");
   if (peerid == (uint32_t)-1)
     return -1;
@@ -367,7 +352,7 @@ snw_sig_broadcast_new_stream(snw_context_t *ctx,
     json_object_put(jobj);
     return -2;
   }
- 
+
   DEBUG(log,"broadcast new stream, streamid=%u, str=%s", streamid, str);
   snw_sig_broadcast_net_msg(ctx,channel,str,strlen(str));
   json_object_put(jobj);
@@ -1261,10 +1246,10 @@ snw_ice_msg(int fd, short int event,void* data) {
 
       if (len == 0) return;
 
-      DEBUG(ctx->log,"dequeue msg from ice, flowid=%u, len=%u, cnt=%d",
-          flowid, len, cnt);
       buffer[len] = 0;
-      snw_process_msg_from_ice(ctx,buffer,len,flowid);
+      TRACE(ctx->log,"dequeue msg from ice, flowid=%u, len=%u, cnt=%d, data=%s",
+          flowid, len, cnt, buffer);
+      snw_process_msg_from_ice(ctx, buffer, len, flowid);
 
 #ifdef USE_ADAPTIVE_CONTROL
    }

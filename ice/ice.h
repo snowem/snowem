@@ -71,7 +71,7 @@ struct snw_ice_context {
 
    /* caches, efficiency in search */
    snw_hashbase_t *session_cache;
-   snw_hashbase_t *channel_cache;
+   snw_hashbase_t *subscribe_cache;
 
    /* mempools for fixed-size objects, fast in (de)allocation */
    snw_mempool_t  *stream_mempool;

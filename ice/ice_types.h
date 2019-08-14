@@ -36,9 +36,9 @@ typedef struct snw_sctp_channel snw_sctp_channel_t;
 #define ICE_SESSION_HASHTIME  10
 #define ICE_SESSION_HASHLEN   100
 
-#define ICE_CHANNEL_SHM_KEY   0x091002
-#define ICE_CHANNEL_HASHTIME  10
-#define ICE_CHANNEL_HASHLEN   100
+#define ICE_SUBSCRIBE_SHM_KEY   0x091002
+#define ICE_SUBSCRIBE_HASHTIME  10
+#define ICE_SUBSCRIBE_HASHLEN   100
 
 #define ENABLE_SNW_DEBUG
 #define PRINT_CANDIDATE(c_)\

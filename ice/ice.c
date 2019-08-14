@@ -22,7 +22,7 @@
 #include "core/core.h"
 #include "core/log.h"
 #include "ice.h"
-#include "ice_channel.h"
+#include "ice_subscribe.h"
 #include "ice_session.h"
 #include "ice_stream.h"
 #include "ice/sctp.h"
@@ -81,14 +81,14 @@ done:
 }
 
 void
-snw_ice_dispatch_msg(int fd, short int event,void* data) {
+snw_ice_dispatch_msg(int fd, short int event, void* data) {
    static char buf[MAX_BUFFER_SIZE];
    snw_ice_context_t *ice_ctx = (snw_ice_context_t*)data;
    uint32_t len = 0;
    uint32_t flowid = 0;
    uint32_t cnt = 0;
    int ret = 0; 
-   
+
    while (true) {
       len = 0;
       flowid = 0;
@@ -100,7 +100,9 @@ snw_ice_dispatch_msg(int fd, short int event,void* data) {
          return;
 
       buf[len] = 0; // null-terminated string
-      snw_ice_api_handler(ice_ctx,buf,len,flowid);
+      TRACE(ice_ctx->log,"dequeue msg from core, flowid=%u, len=%u, cnt=%d, data=%s",
+          flowid, len, cnt, buf);
+      snw_ice_api_handler(ice_ctx, buf, len, flowid);
    }
 
    return;
@@ -257,7 +259,7 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
 
    snw_ice_sdp_init(ice_ctx);
    snw_ice_session_init(ice_ctx);
-   if (snw_ice_channel_init(ice_ctx) < 0) {
+   if (snw_ice_subscribe_init(ice_ctx) < 0) {
      assert(0);
    }
    snw_ice_stream_mempool_init(ice_ctx);
@@ -318,7 +320,4 @@ snw_ice_task_cb(snw_task_ctx_t *task_ctx, void *data) {
    snw_ice_init(ctx,task_ctx);
    return;
 }
-
-
-
 
