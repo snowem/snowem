@@ -119,7 +119,7 @@ void message_handler(struct evwsconn* conn, enum evws_data_type data_type,
 
   memcpy(buf, &event, sizeof(event));
   memcpy(buf+sizeof(event),data,len);
-   
+
   snw_shmmq_enqueue(ctx->task_ctx->resp_mq,
       cur_time,buf,len+sizeof(event),conn->flowid);
 
@@ -185,7 +185,7 @@ snw_websocket_dispatch_msg(int fd, short int event,void* data) {
    uint32_t flowid = 0;
    uint32_t cnt = 0;
    int ret = 0; 
-   
+
    while (true) {
      len = 0;
      flowid = 0;
@@ -198,7 +198,7 @@ snw_websocket_dispatch_msg(int fd, short int event,void* data) {
      ret = snw_shmmq_dequeue(ws_ctx->task_ctx->req_mq, buf, MAX_BUFFER_SIZE, &len, &flowid);
      if ( (len == 0 && ret == 0) || (ret < 0) )
         return;
-     
+
      buf[len] = 0;
      snw_websocket_send_msg(ws_ctx,buf,len,flowid);
    }
@@ -268,7 +268,7 @@ snw_net_task_cb(snw_task_ctx_t *task_ctx, void *data) {
    ws_ctx->log = snw_log_init(ctx->websocket_log_file, ctx->log_level,
        ctx->log_rotate_num, ctx->log_file_maxsize);
    if (ws_ctx->log == 0) {
-      exit(-1);   
+      exit(-1);
    }
 
    ws_ctx->wss_cert_file = strdup(ctx->wss_cert_file);
@@ -284,7 +284,7 @@ snw_net_task_cb(snw_task_ctx_t *task_ctx, void *data) {
 
    q_event = event_new(ws_ctx->ev_base, task_ctx->req_mq->pipe[0], 
          EV_TIMEOUT|EV_READ|EV_PERSIST, snw_websocket_dispatch_msg, ws_ctx);
-   event_add(q_event, NULL);   
+   event_add(q_event, NULL);
 
    memset(&sin, 0, sizeof(sin));
    sin.sin_family = AF_INET;

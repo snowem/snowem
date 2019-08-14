@@ -73,7 +73,7 @@ snw_channel_t*
 snw_channel_get(snw_hashbase_t *ctx, uint32_t id, int *is_new) {
    snw_channel_t key;
    snw_channel_t *so;
-   
+
    key.id = id;
    so = CACHE_GET(ctx, &key, is_new, snw_channel_t*);
 

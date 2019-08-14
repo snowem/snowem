@@ -274,7 +274,7 @@ snw_ice_init(snw_context_t *ctx, snw_task_ctx_t *task_ctx) {
 
    q_event = event_new(ctx->ev_base, task_ctx->req_mq->pipe[0], 
          EV_TIMEOUT|EV_READ|EV_PERSIST, snw_ice_dispatch_msg, ice_ctx);
-   event_add(q_event, NULL);   
+   event_add(q_event, NULL);
 
    TAILQ_INIT(&ice_ctx->api_handlers);
    for (int i=0; i<api_num; i++) {

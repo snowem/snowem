@@ -56,9 +56,9 @@ snw_ice_session_init(snw_ice_context_t *ctx) {
    if (ctx->session_cache == 0)
       return -1;
 
-   return snw_cache_init(ctx->session_cache, ICE_SESSION_SHM_KEY, ICE_SESSION_HASHTIME, 
+   return snw_cache_init(ctx->session_cache, ICE_SESSION_SHM_KEY, ICE_SESSION_HASHTIME,
             ICE_SESSION_HASHLEN, sizeof(snw_ice_session_t),
-            CACHE_FLAG_CREATE | CACHE_FLAG_INIT, ice_session_eq, 
+            CACHE_FLAG_CREATE | CACHE_FLAG_INIT, ice_session_eq,
             ice_session_key, ice_session_isempty, ice_session_setempty);
 }
 
@@ -67,10 +67,10 @@ snw_ice_session_get(snw_ice_context_t *ctx, uint32_t streamid, int *is_new) {
    snw_log_t *log = 0;
    snw_ice_session_t key;
    snw_ice_session_t *so;
-  
+
    if (!ctx) return 0;
    log = ctx->log;
-    
+
    key.streamid = streamid;
    so = CACHE_GET(ctx->session_cache, &key, is_new, snw_ice_session_t*);
 

@@ -197,7 +197,7 @@ install(FILES html/index.html html/js/snowsdk.js html/js/adapter.js html/js/app.
 install(TARGETS snowem DESTINATION /usr/local/bin)
 
 set(CPACK_PACKAGE_NAME "snowem")
-set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_VERSION "2.0.0")
 set(CPACK_MONOLITHIC_INSTALL 1)
 include(CPack)
 

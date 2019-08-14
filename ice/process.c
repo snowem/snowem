@@ -1084,20 +1084,18 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    snw_ice_channel_t *channel;
    json_object *jobj = (json_object*)data;
    uint32_t stream_type = 0;
-   uint32_t channelid = 0;
    uint32_t streamid = 0;
    int is_new = 0;
 
    if (!jobj) return;
 
-   channelid = snw_json_msg_get_int(jobj,"channelid");
-   stream_type = snw_json_msg_get_int(jobj,"stream_type");
-   streamid = snw_json_msg_get_int(jobj,"streamid");
-   if (channelid == (uint32_t)-1 || stream_type == (uint32_t)-1 || streamid == (uint32_t)-1)
+   stream_type = snw_json_msg_get_int(jobj, "stream_type");
+   streamid = snw_json_msg_get_int(jobj, "streamid");
+   if (stream_type == (uint32_t)-1 || streamid == (uint32_t)-1)
      return;
 
    DEBUG(log,"connect msg, streamid=%u", streamid);
-   session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx,streamid,&is_new);
+   session = (snw_ice_session_t*)snw_ice_session_get(ice_ctx, streamid, &is_new);
    if (!session) {
       ERROR(log,"failed to get session, flowid=%u",flowid);
       return;
@@ -1109,21 +1107,21 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
       return;
    }
 
-   is_new = 0;
+   /*is_new = 0;
    channel = (snw_ice_channel_t*)snw_ice_channel_get(ice_ctx,streamid,&is_new); //TODO: used to use channelid
    if (!channel || !is_new) {
       ERROR(log,"failed to create ice channel, flowid=%u, is_new=%u", 
             flowid, is_new);
       snw_ice_send_msg_to_core(ice_ctx,jobj,flowid,-1);
       return;
-   }
+   }*/
 
    DEBUG(log,"init new session, channelid=%u, stream_type=%u, flowid=%u", 
-         channelid, stream_type, session->flowid);
+         -1, stream_type, session->flowid);
 
-   session->channelid = channelid;
+   session->channelid = -1; //TODO: remove
    session->flowid = flowid;
-   session->channel = channel;
+   session->channel = 0; //TODO: remove
    session->control_mode = ICE_CONTROLLED_MODE;
    session->flags = 0;
    snw_rtp_ctx_init(&session->rtp_ctx);
@@ -1759,7 +1757,7 @@ snw_ice_play_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowi
 
    snw_channel_add_subscriber(ice_ctx, publishid, streamid);
    session->publishid = publishid;
-  
+
    return;
 }
 

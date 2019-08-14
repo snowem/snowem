@@ -115,6 +115,43 @@ snw_core_ice_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) 
   return 0;
 }
 
+int
+snw_core_ice_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  snw_channel_t *channel = 0;
+  snw_stream_t *stream = 0;
+  uint32_t streamid = 0;
+  uint32_t channelid = 0;
+  const char *str = 0;
+  int is_new = 0;
+
+  //Step1: get stream id from a pool.
+  streamid = snw_set_getid(ctx->stream_mgr);
+  if (streamid == 0) {
+     ERROR(log, "can not get stream, flowid=%u", flowid);
+     return -1;
+  }
+
+  DEBUG(log, "get new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
+  stream = snw_stream_get(ctx->stream_cache,streamid,&is_new);
+  if (!stream || !is_new) {
+    ERROR(log, "no new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
+    return -2;
+  }
+  stream->flowid = flowid;
+
+  DEBUG(log,"create a stream, streamid=%u", streamid);
+  json_object_object_add(jobj,"streamid",json_object_new_int(streamid));
+  json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
+  json_object_object_add(jobj,"rc",json_object_new_int(0));
+  str = snw_json_msg_to_string(jobj);
+  if (!str) return -1;
+  DEBUG(log,"create a stream, streamid=%s", str);
+  snw_shmmq_enqueue(ctx->http_task->req_mq,0,str,strlen(str),flowid);
+
+  return 0;
+}
 
 
 int
@@ -126,6 +163,9 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
 
   api = snw_json_msg_get_int(jobj,"api");
   switch(api) {
+     case SNW_ICE_CREATE:
+        ret = snw_core_ice_create_msg(ctx,jobj,0,flowid);
+        return ret;
      case SNW_ICE_PUBLISH:
         ret = snw_core_ice_publish_msg(ctx,jobj,0,flowid);
         break;
@@ -416,7 +456,7 @@ snw_sig_sdp_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   json_object *jobj = (json_object*)data;
   const char *str = 0;
   uint32_t remoteid = 0;
-   
+
   remoteid = snw_json_msg_get_int(jobj,"remoteid");
   str = snw_json_msg_to_string(jobj);
   if (!str) return -1;
@@ -639,7 +679,7 @@ snw_channel_create_stream_msg(snw_context_t *ctx, void *data, int len, uint32_t 
   uint32_t channelid = 0;
   const char *str = 0;
   int is_new = 0;
-  
+
   //Step1: get stream id from a pool.
   streamid = snw_set_getid(ctx->stream_mgr);
   if (streamid == 0) {
@@ -670,7 +710,7 @@ snw_channel_create_stream_msg(snw_context_t *ctx, void *data, int len, uint32_t 
 
   snw_list_add_item(&channel->streams,streamid);
   stream->channelid = channelid;
-     
+
   DEBUG(log,"create a stream, streamid=%u, channelid=%u", streamid, channelid);
 
   json_object_object_add(jobj,"streamid",json_object_new_int(streamid));
@@ -747,12 +787,12 @@ snw_core_process_msg(snw_context_t *ctx, snw_connection_t *conn, char *data, uin
       case SNW_ICE:
          snw_ice_handler(ctx,conn,jobj);
          break;
-      case SNW_SIG:
+      /*case SNW_SIG:
          snw_sig_handler(ctx,conn,jobj);
          break;
       case SNW_CHANNEL:
          snw_channel_handler(ctx,conn,jobj);
-         break;
+         break;*/
       default:
          snw_module_handler(ctx,conn,msgtype,data,len);
          break;
@@ -922,11 +962,11 @@ snw_net_preprocess_msg(snw_context_t *ctx, char *buffer, uint32_t len, uint32_t 
       return -1;
    }
 
-   if (header->magic_num != SNW_EVENT_MAGIC_NUM) {        
+   if (header->magic_num != SNW_EVENT_MAGIC_NUM) {
       ERROR(log, "no event header, len=%u,flowid=%u, magic=%u",
             len,flowid,header->magic_num);
       return -2;
-   }    
+   }
 
    memset(&conn, 0, sizeof(conn));
    conn.flowid = flowid;
@@ -934,12 +974,12 @@ snw_net_preprocess_msg(snw_context_t *ctx, char *buffer, uint32_t len, uint32_t 
    conn.port = header->port;
    conn.ipaddr = header->ipaddr;
 
-   if(header->event_type == snw_ev_connect) {     
+   if(header->event_type == snw_ev_connect) {
       snw_core_connect(ctx,&conn);
       return 0;
-   }    
+   }
 
-   if(header->event_type == snw_ev_disconnect) {     
+   if(header->event_type == snw_ev_disconnect) {
       snw_core_disconnect(ctx,&conn);
       return 0;
    }
@@ -1161,7 +1201,22 @@ snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t
      return -1;
    }
 
-   if (msgtype != SNW_CHANNEL) {
+   if (msgtype != SNW_ICE) {
+     json_object_put(jobj);
+     return -1;
+   }
+
+   switch(api) {
+     case SNW_ICE_CREATE:
+       snw_core_ice_create_msg(ctx,jobj,0,flowid);
+       break;
+     default:
+       ERROR(log,"unsupported http request, api=%u",api);
+       break;
+   }
+
+
+   /*if (msgtype != SNW_CHANNEL) {
      json_object_put(jobj);
      return -1;
    }
@@ -1180,7 +1235,7 @@ snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t
      default:
        ERROR(log,"unknown http request, api=%u",api);
        break;
-   }
+   }*/
 
    json_object_put(jobj);
    return 0;
@@ -1339,8 +1394,8 @@ void
 snw_core_ice_cb(snw_task_ctx_t *task_ctx, void *data) {
   snw_context_t *ctx = (snw_context_t *)data;
   struct event *q_event;
-   
-  ctx->ice_task = task_ctx;   
+
+  ctx->ice_task = task_ctx;
 
   //TODO: create snw_task_register_callback(int type, callback)
   q_event = event_new(ctx->ev_base, task_ctx->resp_mq->pipe[0], 
@@ -1352,8 +1407,8 @@ void
 snw_core_net_cb(snw_task_ctx_t *task_ctx, void *data) {
   snw_context_t *ctx = (snw_context_t *)data;
   struct event *q_event;
-   
-  ctx->net_task = task_ctx;   
+
+  ctx->net_task = task_ctx;
 
   //TODO: create snw_task_register_callback(int type, callback)
   q_event = event_new(ctx->ev_base, task_ctx->resp_mq->pipe[0], 
@@ -1365,8 +1420,8 @@ void
 snw_core_http_cb(snw_task_ctx_t *task_ctx, void *data) {
   snw_context_t *ctx = (snw_context_t *)data;
   struct event *q_event;
-   
-  ctx->http_task = task_ctx;   
+
+  ctx->http_task = task_ctx;
 
   //TODO: create snw_task_register_callback(int type, callback)
   q_event = event_new(ctx->ev_base, task_ctx->resp_mq->pipe[0],
@@ -1391,14 +1446,14 @@ main(int argc, char** argv, char **envp) {
      exit(0);
    }
 
-   setproctitle_init(argc,argv,envp);
+   setproctitle_init(argc, argv, envp);
 
    srand(time(NULL));
    ctx = snw_create_context();
    if (ctx == NULL) exit(-1);
    if (argc < 2) exit(-2);
 
-   snw_config_init(ctx,argv[1]);
+   snw_config_init(ctx, argv[1]);
 
    ctx->ev_base = event_base_new();
    if (ctx->ev_base == 0) exit(-3);
