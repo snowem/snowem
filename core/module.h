@@ -30,10 +30,7 @@ extern "C" {
 enum {
    SNW_MSGTYPE_MIN = 1,
    SNW_ICE = SNW_MSGTYPE_MIN,
-   SNW_CORE = 2,
-   SNW_EVENT = 3,
-   SNW_SIG = 4,
-   SNW_CHANNEL = 5,
+   SNW_EVENT = 2,
 
    /* reserve range */
    SNW_MSGTYPE_MAX = 255,
@@ -60,16 +57,6 @@ enum {
    SNW_ICE_MAX = 255,
 };
 
-/* CORE api code */
-enum {
-   SNW_CORE_MIN = 1,
-   SNW_CORE_RTP = SNW_CORE_MIN,
-   SNW_CORE_RTCP = 2,
-
-   /* reserved range */
-   SNW_CORE_MAX = 255,
-};
-
 /* EVENT api code */
 enum {
    SNW_EVENT_MIN = 1,
@@ -80,36 +67,6 @@ enum {
 
    /* reserved range */
    SNW_EVENT_MAX = 255,
-};
-
-/* SIG api code */
-enum {
-   SNW_SIG_MIN = 1,
-   SNW_SIG_AUTH = SNW_SIG_MIN,
-   SNW_SIG_CREATE = 2,
-   SNW_SIG_CONNECT = 3,
-   SNW_SIG_CALL = 4,
-   SNW_SIG_PUBLISH = 5,
-   SNW_SIG_PLAY = 6,
-
-   // internal api
-   SNW_SIG_SDP = 128,
-   SNW_SIG_CANDIDATE = 129,
-
-   SNW_SIG_MAX = 255,
-};
-
-/* CHANNEL api code */
-enum {
-   SNW_CHANNEL_MIN = 1,
-   SNW_CHANNEL_CREATE = SNW_CHANNEL_MIN,
-   SNW_CHANNEL_DELETE = 2,
-   SNW_CHANNEL_QUERY = 3,
-   SNW_CHANNEL_CONNECT = 4,
-   SNW_CHANNEL_DISCONNECT = 5,
-   SNW_CHANNEL_CREATE_STREAM = 6,
-
-   SNW_CHANNEL_MAX = 255,
 };
 
 typedef struct snw_module_callbacks snw_module_callbacks_t;

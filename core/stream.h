@@ -25,7 +25,6 @@
 typedef struct snw_stream snw_stream_t;
 struct snw_stream {
    uint32_t id; //streamid
-   uint32_t channelid;
    uint32_t flowid;
    int      type;
    int      state;

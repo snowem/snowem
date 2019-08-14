@@ -39,10 +39,6 @@
 #include "websocket/websocket.h"
 
 int
-snw_sig_broadcast_new_stream(snw_context_t *ctx,
-     snw_channel_t *channel, uint32_t streamid);
-
-int
 snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
@@ -64,36 +60,12 @@ snw_core_ice_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowi
   stream->type = STREAM_TYPE_PUBLISHER;
 
   //TODO: broadcast info to external party
-
-  // inform ice component of new status
-  /*{
-    const char *str = 0;
-    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
-    str = snw_json_msg_to_string(jobj);
-    if (!str) return -1;
-    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-  }*/
-
-  // broadcast new stream
-  //snw_sig_broadcast_new_stream(ctx, channel, streamid);
-
   return 0;
 }
 
 int
 snw_core_ice_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  //FIXME: do we need this?
-  /*{
-    json_object *jobj = (json_object*)data;
-    const char *str = 0;
-    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PLAY));
-    str = snw_json_msg_to_string(jobj);
-    if (!str) return -1;
-    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-  }*/
-
+  //TODO: broadcast info to external party
   return 0;
 }
 
@@ -101,10 +73,8 @@ int
 snw_core_ice_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
   snw_log_t *log = ctx->log;
   json_object *jobj = (json_object*)data;
-  snw_channel_t *channel = 0;
   snw_stream_t *stream = 0;
   uint32_t streamid = 0;
-  uint32_t channelid = 0;
   const char *str = 0;
   int is_new = 0;
 
@@ -153,7 +123,7 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
         ret = snw_core_ice_publish_msg(ctx,jobj,0,flowid);
         ERROR(log, "ice publish, ret=%u", ret);
         break;
-     case SNW_SIG_PLAY:
+     case SNW_ICE_PLAY:
         ret = snw_core_ice_play_msg(ctx,jobj,0,flowid);
         break;
      default:
@@ -167,131 +137,6 @@ snw_ice_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
     ERROR(log, "forward msg to ice, len=%u, str=%s", strlen(str), str);
     snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
   }
-
-  return 0;
-}
-
-int
-snw_sig_auth_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  json_object *jobj = (json_object*)data;
-  const char *auth_data = 0;
-
-  auth_data = snw_json_msg_get_string(jobj,"auth_data");
-  if (!auth_data) return -1;
-
-  //TODO: move logic to channel.auth
-  return 0;
-}
-
-int
-snw_sig_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  snw_channel_t *channel = 0;
-  snw_conn_t *conn = 0;
-  uint32_t channelid = 0;
-  const char *str = 0;
-  uint32_t channel_type = 0;
-  uint32_t peerid = 0;
-  int is_new = 0;
-
-  peerid = snw_json_msg_get_int(jobj,"id");
-  if (peerid == (uint32_t)-1)
-    return -1;
-  conn = snw_conn_search(ctx->conn_cache,peerid);
-  if (!conn) {
-    ERROR(log, "peer not found, flowid=%u, peerid=%u", flowid, peerid);
-    return -1;
-  }
-
-  str = snw_json_msg_get_string(jobj,"type");
-  if (!str) return -1;
-
-  if (!strncmp(str,"broadcast",9)) {
-    channel_type = SNW_LIVE_CHANNEL_TYPE;
-  } else 
-  if (!strncmp(str,"call",4)) {
-    channel_type = SNW_P2P_CHANNEL_TYPE;
-  } else 
-  if (!strncmp(str,"conference",10)) {
-    channel_type = SNW_CONF_CHANNEL_TYPE;
-  } else {
-    ERROR(log, "unknow channel type: %s", str);
-    return -2;
-  }
-
-  //Step1: get channel id from a pool.
-  channelid = snw_set_getid(ctx->channel_mgr);
-  if (channelid == 0) {
-     ERROR(log, "can not create channel, flowid=%u", flowid);
-     return -1;
-  }
-
-  //Step2: get channel object.
-  channel = snw_channel_get(ctx->channel_cache,channelid,&is_new);
-  if (channel == 0) {
-     ERROR(log, "can not create channel, flowid=%u", flowid);
-     return -1;
-  }
-  if (!is_new) {
-     ERROR(log,"reseting existing channel, channelid=%u",channelid);
-     memset(channel,0,sizeof(snw_channel_t));
-     channel->id = channelid;
-  }
-  channel->type = channel_type;
-       
-  DEBUG(log,"create channel, channelid=%u", channelid);
-
-  json_object_object_add(jobj,"channelid",json_object_new_int(channelid));
-  json_object_object_add(jobj,"rc",json_object_new_int(0));
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
-
-  //inform ice component about new channel
-  json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-  json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_CREATE));
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
- 
-  return 0;
-}
-
-int
-snw_sig_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  return 0;
-}
-
-int
-snw_sig_call_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  const char *str = 0;
-  uint32_t remoteid = 0;
-  uint32_t channelid = 0;
-  snw_channel_t *channel = 0;
-   
-  remoteid = snw_json_msg_get_int(jobj,"remoteid");
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-  channel = snw_channel_search(ctx->channel_cache, channelid);
-  if (!channel) {
-    ERROR(log, "channel not found, channelid=%u",channelid);
-    return -1;
-  }
-
-  if (!channel->on_call) {
-    channel->on_call = 1;
-  } else {
-    return 0;
-  }
-  
-      
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-
-  DEBUG(log, "send call req, flowid=%u, remoteid=%u", flowid, remoteid);
-  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),remoteid);
 
   return 0;
 }
@@ -315,8 +160,8 @@ snw_sig_broadcast_net_msg(snw_context_t *ctx, snw_channel_t *channel,
   return;
 }
 
-int
-snw_sig_broadcast_new_stream(snw_context_t *ctx,
+/*int
+snw_broadcast_new_stream(snw_context_t *ctx,
      snw_channel_t *channel, uint32_t streamid) {
   snw_log_t *log = ctx->log;
   json_object *jobj = 0;
@@ -358,380 +203,7 @@ snw_sig_broadcast_new_stream(snw_context_t *ctx,
   json_object_put(jobj);
 
   return 0;
-}
-
-int
-snw_sig_publish_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  const char *str = 0;
-  uint32_t streamid = 0;
-  uint32_t channelid = 0;
-  snw_channel_t *channel = 0;
-  snw_stream_t *stream = 0;
-
-  streamid = snw_json_msg_get_int(jobj,"streamid");
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-
-  if (streamid == (uint32_t)-1 || channelid == (uint32_t)-1)
-    return -1;
-
-  stream = snw_stream_search(ctx->stream_cache, streamid);
-  if (!stream) {
-    ERROR(log,"stream not found, flowid=%u, streamid=%u", flowid, streamid);
-    return -1;
-  }
-
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel || stream->channelid != channelid) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return -1;
-  }
-
-  DEBUG(log,"publish req, flowid=%u, channelid=%u, type=%u",
-    flowid, channelid, channel->type);
-
-  if (channel->type == SNW_CONF_CHANNEL_TYPE) {
-    stream->type = STREAM_TYPE_PUBLISHER;
-
-    // inform ice component of new status
-    json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-    json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PUBLISH));
-    str = snw_json_msg_to_string(jobj);
-    if (!str) return -1;
-    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-
-    // broadcast new stream
-    snw_sig_broadcast_new_stream(ctx, channel, streamid);
-    return 0;
-  }
-
-  if (channel->type != SNW_P2P_CHANNEL_TYPE
-      && channel->type != SNW_LIVE_CHANNEL_TYPE) {
-    ERROR(log, "unknow channel type, type=%u", channel->type);
-    return -2;
-  }
-
-
-  return 0;
-}
-
-int
-snw_sig_play_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  const char *str = 0;
-  uint32_t channelid = 0;
-
-  //FIXME: do we need this?
-  DEBUG(log,"play req, flowid=%u, channelid=%u",
-    flowid, channelid);
-
-  json_object_object_add(jobj,"msgtype",json_object_new_int(SNW_ICE));
-  json_object_object_add(jobj,"api",json_object_new_int(SNW_ICE_PLAY));
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
-
-  return 0;
-}
-
-int
-snw_sig_sdp_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  json_object *jobj = (json_object*)data;
-  const char *str = 0;
-  uint32_t remoteid = 0;
-
-  remoteid = snw_json_msg_get_int(jobj,"remoteid");
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),remoteid);
-
-  return 0;
-}
-
-int
-snw_sig_candidate_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  json_object *jobj = (json_object*)data;
-  const char *str = 0;
-  uint32_t remoteid = 0;
-   
-  remoteid = snw_json_msg_get_int(jobj,"remoteid");
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),remoteid);
-
-  return 0;
-}
-
-int
-snw_sig_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
-  snw_log_t *log = ctx->log;
-  uint32_t flowid = conn->flowid;
-  uint32_t api = 0;
-
-  api = snw_json_msg_get_int(jobj,"api");
-  switch(api) {
-     /*case SNW_SIG_AUTH:
-        snw_sig_auth_msg(ctx,jobj,0,flowid);
-        break;
-     case SNW_SIG_CREATE:
-        snw_sig_create_msg(ctx,jobj,0,flowid);
-        break;*/
-     case SNW_SIG_CONNECT:
-        snw_sig_connect_msg(ctx,jobj,0,flowid);
-        break;
-     case SNW_SIG_CALL:
-        snw_sig_call_msg(ctx,jobj,0,flowid);
-        break;
-     case SNW_SIG_PUBLISH:
-        snw_sig_publish_msg(ctx,jobj,0,flowid);
-        break;
-     case SNW_SIG_PLAY:
-        snw_sig_play_msg(ctx,jobj,0,flowid);
-        break;
-     case SNW_SIG_SDP:
-        snw_sig_sdp_msg(ctx,jobj,0,flowid);
-        break;
-     case SNW_SIG_CANDIDATE:
-        snw_sig_candidate_msg(ctx,jobj,0,flowid);
-        break;
-     default:
-        DEBUG(log, "unknown api, api=%u", api);
-        break;
-  }
-
-  return 0;
-}
-
-void
-snw_channel_add_flow(snw_context_t *ctx, snw_channel_t *channel, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-
-  if (!channel
-      || channel->flows.idx >= SNW_USER_NUM_MAX) {
-    WARN(log, "channel is full, id=%d", channel->id);
-    return;
-  }
-  snw_list_add_item(&channel->flows,flowid);
-  return;
-}
-
-int
-snw_channel_connect_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  json_object *streams = 0;
-  snw_channel_t *channel = 0;
-  snw_conn_t *conn = 0;
-  uint32_t channelid = 0;
-  const char *str = 0;
-  int is_new = 0;
-   
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (!channel) {
-    ERROR(log, "channel not found, channelid=%u", channelid);
-    return -1;
-  }
-
-  conn = snw_conn_get(ctx->conn_cache, flowid, &is_new);
-  if (!conn || !is_new) {
-    ERROR(log, "cannot create conn, flowid=%u, channelid=%u",
-        flowid, channelid);
-    return -1;
-  }
-  conn->channelid = channelid;
-
-  DEBUG(log, "connect msg, channelid=%u, type=%u, flowid=%u, idx=%u", 
-      channelid, channel->type, flowid, channel->flows.idx);
-
-
-  // in p2p case: notify other stream abt new stream
-  if (channel->type == SNW_P2P_CHANNEL_TYPE) {
-    uint32_t old_flowid = 0;
-    json_object *msg;
-
-    json_object_object_add(jobj,"rc",json_object_new_int(0));
-    json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
-    str = snw_json_msg_to_string(jobj);
-    if (str) {
-      DEBUG(log,"connect msg send result, str=%s",str);
-      snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
-    }
- 
-    if (channel->flows.idx >= 2) {
-      ERROR(log,"maximum num of users");
-      return -1;
-    }
-    snw_channel_add_flow(ctx,channel,flowid);
-    if (channel->flows.idx == 1)
-      return 0;
-
-    old_flowid = channel->flows.list[0];
-    msg = json_object_new_object();
-    if (!msg) {
-      return -1;
-    }
-    json_object_object_add(msg,"msgtype",json_object_new_int(SNW_EVENT));
-    json_object_object_add(msg,"api",json_object_new_int(SNW_EVENT_ADD_STREAM));
-    json_object_object_add(msg,"type",json_object_new_int(channel->type));
-    json_object_object_add(msg,"channelid",json_object_new_int(channel->id));
-
-    json_object_object_add(msg,"flowid",json_object_new_int(flowid));
-    json_object_object_add(msg,"action",json_object_new_int(1));
-    str = snw_json_msg_to_string(msg);
-    if (str) {
-      DEBUG(log,"send joined stream event, str=%s",str);
-      snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),old_flowid);
-    }
-
-    json_object_object_add(msg,"flowid",json_object_new_int(old_flowid));
-    json_object_object_add(msg,"action",json_object_new_int(0));
-    str = snw_json_msg_to_string(msg);
-    if (str) {
-      DEBUG(log,"send joined stream event, str=%s",str);
-      snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
-    }
-
-    json_object_put(msg);
-
-    return 0;
-  }
-
-  // in live case
-  if (channel->type == SNW_P2P_CHANNEL_TYPE) {
-    //TODO: impl live_type semantic 
-    return 0;
-  }
-
-  // in conference case
-  // notify all published streams to this new connection
-  snw_channel_add_flow(ctx,channel,flowid);
-  if (channel->streams.idx>0) {
-    int i = 0;
-
-    DEBUG(log,"connect msg get array of streams");
-    streams = json_object_new_array();
-    if (!streams) return -2;
-
-    for (i=0; i<channel->streams.idx; i++) {
-      snw_stream_t *stream = 0;
-      json_object *item = 0;
-
-      stream = snw_stream_search(ctx->stream_cache,channel->streams.list[i]);
-      DEBUG(log,"connect msg search for stream, streamid=%u", channel->streams.list[i]);
-      if (!stream || stream->type != STREAM_TYPE_PUBLISHER) {
-        DEBUG(log,"connect msg stream not found, streamid=%u",channel->streams.list[i]);
-        continue;
-      }
-
-      DEBUG(log,"connect msg search for stream, streamid=%u, type=%u",
-           channel->streams.list[i], stream->type);
-
-      item = json_object_new_object();
-      if (!item) {
-        json_object_put(streams);
-        return -1;
-      }
-
-      DEBUG(log,"connect msg insert stream, streamid=%u",stream->id);
-      json_object_object_add(item,"streamid",json_object_new_int(stream->id));
-      json_object_object_add(item,"type",json_object_new_int(stream->type));
-      json_object_array_add(streams,item);
-    }
-  }
-
-  json_object_object_add(jobj,"streams",streams);
-  json_object_object_add(jobj,"rc",json_object_new_int(0));
-  json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
-  str = snw_json_msg_to_string(jobj);
-  if (str) {
-    DEBUG(log,"connect msg send result, str=%s",str);
-    snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
-  }
- 
-  return 0;
-}
-
-int
-snw_channel_create_stream_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
-  snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  snw_channel_t *channel = 0;
-  snw_stream_t *stream = 0;
-  uint32_t streamid = 0;
-  uint32_t channelid = 0;
-  const char *str = 0;
-  int is_new = 0;
-
-  //Step1: get stream id from a pool.
-  streamid = snw_set_getid(ctx->stream_mgr);
-  if (streamid == 0) {
-     ERROR(log, "can not get stream, flowid=%u", flowid);
-     return -1;
-  }
-
-  DEBUG(log, "get new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
-  stream = snw_stream_get(ctx->stream_cache,streamid,&is_new);
-  if (!stream || !is_new) {
-    ERROR(log, "no new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
-    return -2;
-  }
-  stream->flowid = flowid;
-
-  //Step2: get channel object.
-  channelid = snw_json_msg_get_int(jobj,"channelid");
-  channel = snw_channel_search(ctx->channel_cache,channelid);
-  if (channel == 0) {
-     ERROR(log, "channel not found, channelid=%u, flowid=%u", channelid, flowid);
-     return -1;
-  }
-
-
-  //TODO: move to sig_connect_msg
-  DEBUG(log, "add stream to channel, idx=%u, streamid=%u, channelid=%u", 
-      channel->streams.idx, streamid, channelid);
-
-  snw_list_add_item(&channel->streams,streamid);
-  stream->channelid = channelid;
-
-  DEBUG(log,"create a stream, streamid=%u, channelid=%u", streamid, channelid);
-
-  json_object_object_add(jobj,"streamid",json_object_new_int(streamid));
-  json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
-  json_object_object_add(jobj,"rc",json_object_new_int(0));
-  str = snw_json_msg_to_string(jobj);
-  if (!str) return -1;
-  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
-
-  return 0;
-}
-
-int
-snw_channel_handler(snw_context_t *ctx, snw_connection_t *conn, json_object *jobj) {
-  snw_log_t *log = ctx->log;
-  uint32_t flowid = conn->flowid;
-  uint32_t api = 0;
-
-  api = snw_json_msg_get_int(jobj,"api");
-  switch(api) {
-    case SNW_CHANNEL_CONNECT:
-        snw_channel_connect_msg(ctx,jobj,0,flowid);
-        break;
-    case SNW_CHANNEL_DISCONNECT:
-        break;
-    case SNW_CHANNEL_CREATE_STREAM:
-        snw_channel_create_stream_msg(ctx,jobj,0,flowid);
-        break;
-    default:
-        DEBUG(log, "unknown api, api=%u", api);
-        break;
-  }
-
-
-  return 0;
-}
+}*/
 
 int
 snw_module_handler(snw_context_t *ctx, snw_connection_t *conn, uint32_t type, char *data, uint32_t len) {
@@ -763,7 +235,7 @@ snw_core_process_msg(snw_context_t *ctx, snw_connection_t *conn, char *data, uin
            jobj, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
 
    msgtype = snw_json_msg_get_int(jobj,"msgtype");
-   if (msgtype != SNW_ICE && msgtype != SNW_SIG && msgtype != SNW_CHANNEL) {
+   if (msgtype != SNW_ICE) {
       ERROR(log, "wrong msg, msgtype=%u data=%s", msgtype, data);
       goto done;
    }
@@ -774,9 +246,6 @@ snw_core_process_msg(snw_context_t *ctx, snw_connection_t *conn, char *data, uin
          break;
       /*case SNW_SIG:
          snw_sig_handler(ctx,conn,jobj);
-         break;
-      case SNW_CHANNEL:
-         snw_channel_handler(ctx,conn,jobj);
          break;*/
       default:
          snw_module_handler(ctx,conn,msgtype,data,len);
@@ -801,12 +270,11 @@ snw_core_disconnect_stream(snw_context_t *ctx, snw_stream_t *stream) {
   snw_log_t *log = ctx->log;
   json_object *req = json_object_new_object();
   const char *str = 0;
-     
+
   if (!stream || !req) return;
 
   json_object_object_add(req,"msgtype",json_object_new_int(SNW_ICE));
   json_object_object_add(req,"api",json_object_new_int(SNW_ICE_STOP));
-  json_object_object_add(req,"channelid",json_object_new_int(stream->channelid));
   json_object_object_add(req,"streamid",json_object_new_int(stream->id));
   str = snw_json_msg_to_string(req);
   if (!str) {
@@ -828,7 +296,7 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *connection) {
    snw_log_t *log = ctx->log;
    const char *str = 0;
    snw_conn_t *conn = 0;
-   uint32_t channelid = 0;
+   uint32_t streamid = 0;
    uint32_t flowid = 0;
    snw_channel_t *channel = 0;
    json_object *jobj = 0;
@@ -846,16 +314,16 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *connection) {
    DEBUG(log,"connection found, flowid=%u, peer_flowid=%u",
        conn->flowid, conn->flowid);
 
-   channelid = conn->channelid;
-   channel = snw_channel_search(ctx->channel_cache, channelid);
+   streamid = conn->streamid;
+   channel = snw_channel_search(ctx->channel_cache, streamid);
    if (!channel) {
-      WARN(log, "channel not found, channelid=%u", channelid);
+      WARN(log, "channel not found, streamid=%u", streamid);
       return 0;
    }
 
-   DEBUG(log,"channel found, flowid=%u, channelid=%u",
-      conn->flowid, channelid);
-   
+   DEBUG(log,"channel found, flowid=%u, streamid=%u",
+      conn->flowid, streamid);
+
    jarray = json_object_new_array();
    if ( !jarray) {
      ERROR(log, "cannot alloc json object");
@@ -917,8 +385,8 @@ snw_core_disconnect(snw_context_t *ctx, snw_connection_t *connection) {
      snw_sig_broadcast_net_msg(ctx,channel,str,strlen(str));
 
    } else {
-      DEBUG(log,"remove flow, flowid=%u, channelid=%u",
-         conn->flowid, channelid);
+      DEBUG(log,"remove flow, flowid=%u, streamid=%u",
+         conn->flowid, streamid);
      DEBUG_LIST(&channel->flows);
      snw_list_remove_item(&channel->flows,flowid);
      //TODO: remove all streams
@@ -1199,28 +667,6 @@ snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t
        ERROR(log,"unsupported http request, api=%u",api);
        break;
    }
-
-
-   /*if (msgtype != SNW_CHANNEL) {
-     json_object_put(jobj);
-     return -1;
-   }
-
-   switch(api) {
-     case SNW_CHANNEL_CREATE:
-       snw_process_http_create_req(ctx,jobj,0,flowid);
-       break;
-     case SNW_CHANNEL_DELETE:
-       snw_process_http_delete_req(ctx,jobj,0,flowid);
-       break;
-     case SNW_CHANNEL_QUERY:
-       snw_process_http_query_req(ctx,jobj,0,flowid);
-       break;
-
-     default:
-       ERROR(log,"unknown http request, api=%u",api);
-       break;
-   }*/
 
    json_object_put(jobj);
    return 0;
