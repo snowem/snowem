@@ -24,9 +24,7 @@
 
 #include "cice/event.h"
 #include "core/cache.h"
-#include "core/connection.h"
 #include "core/mempool.h"
-#include "core/session.h"
 #include "core/task.h"
 #include "core/types.h"
 #include "ice_types.h"

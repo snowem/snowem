@@ -29,7 +29,7 @@
 #include "ice/ice.h"
 
 snw_context_t*
-snw_create_context() {   
+snw_create_context() {
    snw_context_t *ctx;
 
    ctx = (snw_context_t*)malloc(sizeof(snw_context_t));
@@ -45,10 +45,9 @@ void
 daemonize() {
    pid_t pid;
 
-   if ((pid = fork() ) != 0 ) 
-   {   
-      exit( 0); 
-   }   
+   if ((pid = fork() ) != 0 ) {
+      exit( 0);
+   }
 
    setsid();
 
@@ -67,10 +66,9 @@ daemonize() {
    sigemptyset( &sig.sa_mask);
    sigaction( SIGHUP,&sig,NULL);
 
-   if ((pid = fork() ) != 0 ) 
-   {   
+   if ((pid = fork() ) != 0 ) {
       exit(0);
-   }   
+   }
 
    umask(0);
    setpgrp();

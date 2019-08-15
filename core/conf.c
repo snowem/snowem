@@ -216,7 +216,3 @@ snw_config_init(snw_context_t *ctx, const char *file) {
    return;
 }
 
-
-
-
-

@@ -15,13 +15,18 @@
  *
  */
 
-#ifndef _SNOW_CORE_PEER_H_
-#define _SNOW_CORE_PEER_H_
+#ifndef _SNOW_CORE_CONN_H_
+#define _SNOW_CORE_CONN_H_
 
 #include <stdint.h>
 
+#include "cache.h"
 #include "types.h"
 
+enum {
+   WSS_SOCKET_UDP = 1,
+   ICE_SOCKET_UDP = 2,
+};
 
 typedef struct snw_conn snw_conn_t;
 struct snw_conn {
@@ -44,9 +49,9 @@ snw_conn_search(snw_hashbase_t *ctx, uint32_t peerid);
 snw_conn_t*
 snw_conn_insert(snw_hashbase_t *ctx, snw_conn_t *sitem);
 
-int 
+int
 snw_conn_remove(snw_hashbase_t *ctx, snw_conn_t *sitem);
 
-#endif //_SNOW_CORE_PEER_H_
+#endif //_SNOW_CORE_CONN_H_
 
 

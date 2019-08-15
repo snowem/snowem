@@ -23,14 +23,14 @@
 
 int
 stream_key(const void *item)
-{  
+{
    snw_stream_t *so =  (snw_stream_t *)item;
    return so->id;
 }
 
 int
 stream_eq(const void *arg1, const void *arg2)
-{  
+{
    snw_stream_t *item1 = (snw_stream_t *)arg1;
    snw_stream_t *item2 = (snw_stream_t *)arg2;
    return (item1->id == item2->id);
@@ -43,7 +43,7 @@ stream_isempty(const void *arg)
    return (item->id == 0);
 }
 
-int            
+int
 stream_setempty(const void *arg)
 {
    snw_stream_t *item = (snw_stream_t *)arg;
@@ -74,9 +74,9 @@ snw_stream_t*
 snw_stream_get(snw_hashbase_t *ctx, uint32_t id, int *is_new) {
    snw_stream_t key;
    snw_stream_t *so;
-  
+
    if (!ctx) return 0;
-    
+
    key.id = id;
    so = CACHE_GET(ctx, &key, is_new, snw_stream_t*);
 
@@ -106,7 +106,7 @@ snw_stream_insert(snw_hashbase_t *ctx, snw_stream_t *sitem) {
    return (snw_stream_t*)snw_cache_insert(ctx, sitem);
 }
 
-int 
+int
 snw_stream_remove(snw_hashbase_t *ctx, snw_stream_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }

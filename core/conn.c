@@ -106,7 +106,7 @@ snw_conn_insert(snw_hashbase_t *ctx, snw_conn_t *sitem) {
    return (snw_conn_t*)snw_cache_insert(ctx, sitem);
 }
 
-int 
+int
 snw_conn_remove(snw_hashbase_t *ctx, snw_conn_t *sitem) {
    return snw_cache_remove(ctx, sitem);
 }

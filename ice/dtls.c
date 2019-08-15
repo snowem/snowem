@@ -18,7 +18,6 @@
 
 #include "core/log.h"
 #include "core/types.h"
-#include "core/session.h"
 #include "core/utils.h"
 #include "ice/dtls.h"
 #include "ice/ice.h"

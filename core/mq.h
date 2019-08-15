@@ -32,7 +32,7 @@ enum {
 };
 
 typedef struct snw_shmctrl snw_shmctrl_t;
-struct snw_shmctrl 
+struct snw_shmctrl
 {
    uint32_t  head;
    uint32_t  tail;
@@ -59,27 +59,27 @@ struct snw_shmmq
   uint32_t        size;
 }__attribute__((packed));
 
-void 
+void
 print_shmmq(snw_shmmq_t *mq);
 
 snw_shmmq_t*
 snw_shmmq_new(int type);
 
-int 
+int
 snw_shmmq_init(snw_shmmq_t *mq,
-      int32_t wait_sec, int32_t wait_usec, 
+      int32_t wait_sec, int32_t wait_usec,
       int32_t shm_key, int32_t shm_size);
 
-void 
+void
 snw_shmmq_release(snw_shmmq_t *mq);
 
-int 
-snw_shmmq_enqueue(snw_shmmq_t *mq, 
-      const time_t uiCurTime, const void* data, 
+int
+snw_shmmq_enqueue(snw_shmmq_t *mq,
+      const time_t uiCurTime, const void* data,
       uint32_t data_len, uint32_t flow);
 
-int 
-snw_shmmq_dequeue(snw_shmmq_t *mq, void* buf, 
+int
+snw_shmmq_dequeue(snw_shmmq_t *mq, void* buf,
       uint32_t buf_size, uint32_t *data_len, uint32_t *flow);
 
 #ifdef __cplusplus

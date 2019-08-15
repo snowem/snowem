@@ -95,34 +95,17 @@ struct snw_context {
    snw_task_ctx_t *ice_task;
 
    /* caches */
-   snw_hashbase_t *channel_cache;
    snw_hashbase_t *conn_cache;
-   snw_hashbase_t *roominfo_cache;
    snw_hashbase_t *stream_cache;
 
-   /* channel set */
-   snw_set_t      *channel_mgr;
+   /* stream set */
    snw_set_t      *stream_mgr;
 
    /* mempool for fixed-size objects */
    snw_mempool_t *rcvvars_mp;
 
    module_head_t  modules;
-
-   /* map from flowid to peerid */
-   uint32_t flow2peer[SNW_CORE_FLOW_NUM_MAX];
 };
-
-#define SET_FLOW2PEER_NET(flowid,peerid) \
-  if (flowid > SNW_CORE_FLOW_NET_IDX \
-      && ((flowid - SNW_CORE_FLOW_NET_IDX) < SNW_CORE_FLOW_NUM_MAX)) { \
-    ctx->flow2peer[flowid-SNW_CORE_FLOW_NET_IDX] = peerid; \
-  }
-
-#define GET_FLOW2PEER_NET(flowid) \
-  (flowid > SNW_CORE_FLOW_NET_IDX \
-      && ((flowid - SNW_CORE_FLOW_NET_IDX) < SNW_CORE_FLOW_NUM_MAX)) ?  \
-    ctx->flow2peer[flowid-SNW_CORE_FLOW_NET_IDX] : 0;
 
 snw_context_t*
 snw_create_context();
