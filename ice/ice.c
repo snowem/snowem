@@ -40,7 +40,7 @@ snw_ice_api_handler(snw_ice_context_t *ice_ctx, char *data, uint32_t len, uint32
 
    if (!ice_ctx) return;
    log = ice_ctx->log;
-   
+
    jobj = json_tokener_parse(data);
    if (!jobj) {
       ERROR(log,"error json format, s=%s",data);

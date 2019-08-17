@@ -34,17 +34,17 @@ notify_event(struct evwsconn* conn, uint32_t type,
   snw_event_t event;
   time_t cur_time;
 
-  DEBUG(ctx->log, "notify event, flowid=%u, event=%u", conn->flowid, event);
+  DEBUG(ctx->log, "notify event, flowid=%u, event=%u", conn->flowid, type);
 
   cur_time = time(NULL);
   memset(&event,0,sizeof(event));
   event.magic_num = SNW_EVENT_MAGIC_NUM;
-  event.event_type = type; //i.e. snw_ev_connect;
+  event.event_type = type;
   event.ipaddr = conn->ip;
   event.port = conn->port;
   event.flow = conn->flowid;
   event.other = bufferevent_getfd(conn->bev);
-  
+
   snw_shmmq_enqueue(ctx->task_ctx->resp_mq,
       cur_time,&event,sizeof(event),conn->flowid);
 
@@ -54,23 +54,10 @@ notify_event(struct evwsconn* conn, uint32_t type,
 void
 close_handler(struct evwsconn* conn, void* user_data) {
   snw_websocket_context_t *ctx = (snw_websocket_context_t *)user_data;
-  //snw_event_t event;
-  //time_t cur_time;
 
   DEBUG(ctx->log,"close connection, flowid=%u",conn->flowid);
-
-  /*cur_time = time(NULL);
-  memset(&event,0,sizeof(event));
-  event.magic_num = SNW_EVENT_MAGIC_NUM;
-  event.event_type = snw_ev_disconnect;
-  event.ipaddr = conn->ip;
-  event.port = conn->port;
-  event.flow = conn->flowid;
-  event.other = bufferevent_getfd(conn->bev);*/
-
-  notify_event(conn,snw_ev_disconnect,ctx);
-
-  snw_flowset_freeid(ctx->flowset,conn->flowid);
+  notify_event(conn, snw_ev_disconnect, ctx);
+  snw_flowset_freeid(ctx->flowset, conn->flowid);
   evwsconn_free(conn);
 }
 
@@ -80,7 +67,7 @@ error_handler(struct evwsconn* conn, void* user_data) {
   snw_event_t event;
   time_t cur_time;
   snw_websocket_context_t *ctx = (snw_websocket_context_t *)user_data;
-  
+
   DEBUG(ctx->log,"error connection, flowid=%u",conn->flowid);
 
   cur_time = time(NULL);
@@ -97,7 +84,7 @@ error_handler(struct evwsconn* conn, void* user_data) {
 
   snw_flowset_freeid(ctx->flowset,conn->flowid);
   evwsconn_free(conn);
-} 
+}
 
 void message_handler(struct evwsconn* conn, enum evws_data_type data_type,
      const unsigned char* data, int len, void* user_data) {
@@ -293,9 +280,9 @@ snw_net_task_cb(snw_task_ctx_t *task_ctx, void *data) {
 
    DEBUG(ws_ctx->log,"wss_ip: %s, wss_port: %d", ctx->wss_ip, ctx->wss_port);
 
-   levws = evwsconnlistener_new_bind(ws_ctx->ev_base, 
+   levws = evwsconnlistener_new_bind(ws_ctx->ev_base,
       new_wsconnection, ws_ctx,
-      LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1, 
+      LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
       subprotocols, ws_ctx->ssl_ctx,
       (struct sockaddr*)&sin, sizeof(sin));
    if (!levws) {

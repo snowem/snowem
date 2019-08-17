@@ -225,8 +225,8 @@ snw_cache_insert(snw_hashbase_t *base, void *sitem)
          memcpy(item, sitem, base->hb_objsize);
          return item;
       }
-   }   
-   
+   }
+
    return 0;
 }
 

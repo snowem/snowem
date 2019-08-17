@@ -675,7 +675,7 @@ snw_ice_broadcast_rtp_pkg(snw_ice_session_t *session,
    ice_ctx = session->ice_ctx;
    log = ice_ctx->log;
 
-   for (int i=0; i<SNW_ICE_SUBSCRIBE_USER_NUM_MAX; i++) {
+   for (int i=0; i<session->subscribe->idx; i++) {
 
       if (session->subscribe->players[i] != 0) {
          rtp_hdr_t *header = (rtp_hdr_t *)buf;
@@ -1107,7 +1107,7 @@ snw_ice_connect_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t fl
    }
 
    is_new = 0;
-   subscribe = (snw_ice_subscribe_t*)snw_ice_subscribe_get(ice_ctx, streamid, &is_new);
+   subscribe = snw_ice_subscribe_get(ice_ctx, streamid, &is_new);
    if (!subscribe || !is_new) {
       ERROR(log,"failed to create ice subscribe, flowid=%u, is_new=%u",
             flowid, is_new);
@@ -1269,31 +1269,47 @@ snw_ice_session_free(snw_ice_context_t *ice_ctx, snw_ice_session_t *session) {
 
    CLEAR_FLAG(session, WEBRTC_READY);
 
-   snw_ice_session_remove(ice_ctx,session);
+   if (session->subscribe) {
+     snw_ice_subscribe_remove(ice_ctx, session->subscribe);
+   }
 
+   snw_ice_session_remove(ice_ctx,session);
    return;
 }
 
 void
 snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowid) {
    snw_log_t *log = ice_ctx->log;
-   snw_ice_session_t *session;
-   snw_rtp_ctx_t     *rtp_ctx;
+   snw_ice_session_t *session = 0;
+   snw_rtp_ctx_t *rtp_ctx = 0;
    json_object *jobj = (json_object*)data;
    snw_record_cmd_t cmd;
    uint32_t streamid = 0;
 
-   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
-
-   streamid = snw_json_msg_get_int(jobj,"streamid");
+   streamid = snw_json_msg_get_int(jobj, "streamid");
    if (streamid == (uint32_t)-1) return;
 
-   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
-
-   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx,streamid);
+   session = (snw_ice_session_t*)snw_ice_session_search(ice_ctx, streamid);
    if (!session) {
-      ERROR(log,"session not found, flowid=%u",flowid);
+      ERROR(log,"session not found, flowid=%u, streamid=%u", flowid, streamid);
       return;
+   }
+
+   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
+   if (session->stream_type == STREAM_TYPE_PUBLISHER && session->subscribe) {
+     for (int i=0; i<session->subscribe->idx; i++) {
+       if (session->subscribe->players[i] != 0) {
+         snw_ice_session_t *s = (snw_ice_session_t*)snw_ice_session_search(ice_ctx,
+             session->subscribe->players[i]);
+         if (!s) {
+            ERROR(log,"session not found, streamid=%u", streamid);
+            return;
+         }
+         DEBUG(log,"stop subscribed stream, streamid=%u, publishid=%u", s->streamid, s->publishid);
+         s->publishid = 0; // no need to remove it from subscribe list in freeing session
+         snw_ice_session_free(ice_ctx, s);
+       }
+     }
    }
 
    rtp_ctx = &session->rtp_ctx;
@@ -1306,9 +1322,7 @@ snw_ice_stop_msg(snw_ice_context_t *ice_ctx, void *data, int len, uint32_t flowi
    cmd.cmd = RTP_RECORD_STOP;
    snw_rtp_handle_pkg_in(rtp_ctx,(char*)&cmd,sizeof(cmd));
 
-   DEBUG(log, "stop a stream, flowid=%u, streamid=%u", flowid, streamid);
    snw_ice_session_free(ice_ctx,session);
-
    return;
 }
 

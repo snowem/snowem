@@ -115,6 +115,31 @@ snw_ice_handler(snw_context_t *ctx, snw_conn_t *conn, json_object *jobj) {
      case SNW_ICE_CREATE:
         ret = snw_core_ice_create_msg(ctx,jobj,0,flowid);
         return ret;
+     case SNW_ICE_CONNECT:
+        {
+          uint32_t streamid = 0;
+          snw_conn_t *new_conn = 0;
+          int is_new = 0;
+
+          streamid = snw_json_msg_get_int(jobj, "streamid");
+          if (streamid == (uint32_t)-1) {
+            ERROR(log, "streamid not found, flowid=%u", flowid);
+            ret = -1;
+            break;
+          }
+          new_conn = snw_conn_get(ctx->conn_cache, flowid, &is_new);
+          if (!new_conn || !is_new) {
+            ERROR(log, "failed to allocate conn, flowid=%u", flowid);
+            ret = -1;
+            break;
+          }
+          new_conn->streamid = streamid;
+          new_conn->srctype = conn->srctype;
+          new_conn->ipaddr = conn->ipaddr;
+          new_conn->port = conn->port;
+          ret = 0;
+          break;
+        }
      case SNW_ICE_PUBLISH:
         ret = snw_core_ice_publish_msg(ctx,jobj,0,flowid);
         break;
@@ -126,12 +151,15 @@ snw_ice_handler(snw_context_t *ctx, snw_conn_t *conn, json_object *jobj) {
         break;
   }
 
-  if (ret == 0) {
-    str = snw_json_msg_to_string(jobj);
-    if (!str) return -1;
-    ERROR(log, "forward msg to ice, len=%u, str=%s", strlen(str), str);
-    snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
+  if (ret < 0) {
+    ERROR(log, "msg handler err, ret = %u", ret);
+    return -1;
   }
+
+  str = snw_json_msg_to_string(jobj);
+  if (!str) return -1;
+  DEBUG(log, "forward msg to ice, len=%u, str=%s", strlen(str), str);
+  snw_shmmq_enqueue(ctx->ice_task->req_mq,0,str,strlen(str),flowid);
 
   return 0;
 }
@@ -220,15 +248,37 @@ snw_core_disconnect_stream(snw_context_t *ctx, snw_stream_t *stream) {
 }
 
 int
-snw_core_disconnect(snw_context_t *ctx, snw_conn_t *conn) {
+snw_core_disconnect(snw_context_t *ctx, snw_conn_t *c) {
    snw_log_t *log = ctx->log;
+   snw_conn_t *conn = 0;
+   json_object *req = 0;
 
-   TRACE(log,"remove connection, flowid=%u", conn->flowid);
-   if (snw_conn_remove(ctx->conn_cache, conn) < 0) {
-     ERROR(log,"conn not found, flowid=%u", conn->flowid);
-     return -1;
+   conn = snw_conn_search(ctx->conn_cache, c->flowid);
+   if (!conn) {
+     ERROR(log, "conn not found, flowid=%u", c->flowid);
+     return 0;
    }
 
+   DEBUG(log,"remove connection, flowid=%u, streamid=%u",
+       conn->flowid, conn->streamid);
+
+   req = json_object_new_object();
+   if (req) {
+     const char *str = 0;
+     json_object_object_add(req,"msgtype",json_object_new_int(SNW_ICE));
+     json_object_object_add(req,"api",json_object_new_int(SNW_ICE_STOP));
+     json_object_object_add(req,"streamid",json_object_new_int(conn->streamid));
+     str = snw_json_msg_to_string(req);
+     if (!str) {
+       json_object_put(req);
+       return -1;
+     }
+     TRACE(log, "forward stop msg to ice, len=%u, str=%s", strlen(str), str);
+     snw_shmmq_enqueue(ctx->ice_task->req_mq, 0, str, strlen(str), conn->flowid);
+     json_object_put(req);
+   }
+
+   snw_conn_remove(ctx->conn_cache, conn);
    return 0;
 }
 

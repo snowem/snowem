@@ -23,14 +23,14 @@
 
 int
 conn_key(const void *item)
-{  
+{
    snw_conn_t *so =  (snw_conn_t *)item;
    return so->flowid;
 }
 
 int
 conn_eq(const void *arg1, const void *arg2)
-{  
+{
    snw_conn_t *item1 = (snw_conn_t *)arg1;
    snw_conn_t *item2 = (snw_conn_t *)arg2;
    return (item1->flowid == item2->flowid);
@@ -43,14 +43,13 @@ conn_isempty(const void *arg)
    return (item->flowid == 0);
 }
 
-int            
+int
 conn_setempty(const void *arg)
 {
    snw_conn_t *item = (snw_conn_t *)arg;
    item->flowid = 0;
    return 0;
 }
-
 
 snw_hashbase_t*
 snw_conn_init() {
@@ -74,9 +73,9 @@ snw_conn_t*
 snw_conn_get(snw_hashbase_t *ctx, uint32_t flowid, int *is_new) {
    snw_conn_t key;
    snw_conn_t *so;
-  
+
    if (!ctx) return 0;
-    
+
    key.flowid = flowid;
    so = CACHE_GET(ctx, &key, is_new, snw_conn_t*);
 
