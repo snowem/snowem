@@ -62,16 +62,19 @@ make install
 The configuration file is written in format of libconfig. The sample file is available at [snowem.conf](https://github.com/snowem/snowem/blob/master/conf/snowem.conf).
 
 ```
-//certificate used by built-in websocket server.
-wss_cert_file = "<path-to>/wss_fullchain.pem"
-wss_key_file = "<path-to>/wss_privkey.pem"
-wss_bind_ip = "<ip_of_websocket_server>"
-wss_bind_port = 443
-//certificate used by media server.
-ice_cert_file = "<path-to>/ice_fullchain.pem"
-ice_key_file = "<path-to>/ice_privkey.pem"
-// TRACE: 0, INFO: 1, DEBUG: 2, WARN: 3, ERROR: 4, FATAL: 5
-log_level = 0
+# General settings
+cert_file = "<path-to-cert-file>"
+key_file = "<path-to-key-file>"
+
+# Websocket settings
+wss_bind_ip = "0.0.0.0"
+wss_bind_port = 8443
+
+# Log level: TRACE=0, DEBUG=1, INFO=2, WARN=3, ERROR=4, FATAL=5
+log_level = 1
+log_file_maxsize = 10000000
+log_rotate_num = 10
+base_log_path = "<path-to-dir>"
 ```
 To run Snowem, simple execute:
 ```
