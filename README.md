@@ -5,7 +5,7 @@ Snowem is a lightweight live streaming server, based on webrtc technology. Snowe
  * `Media Server` is basically SFU in WebRTC stack, it handles ICE protocol and forward media streams among peers.
 
 
-### Live Demo
+## Live Demo
 
 Check at [here](https://snowem.io/).
 
@@ -62,7 +62,9 @@ make
 make install
 ```
 
-The configuration file is written in format of libconfig. To properly configure Snowem, one needs to provide certificates for both built-in websocket server and media server to establishing secure video streams. Basically, it looks like this:
+## Run Snowem
+
+The configuration file is written in format of libconfig. The sample file is available at [snowem.conf](https://github.com/snowem/snowem/blob/master/conf/snowem.conf).
 
 ```
 //certificate used by built-in websocket server.
@@ -76,13 +78,10 @@ ice_key_file = "<path-to>/ice_privkey.pem"
 // TRACE: 0, INFO: 1, DEBUG: 2, WARN: 3, ERROR: 4, FATAL: 5
 log_level = 0
 ```
-
-Note: one may find configuration sample file at [snowem.conf](https://github.com/snowem/snowem/blob/master/conf/snowem.conf). To run Snowem, simple execute:
-
+To run Snowem, simple execute:
 ```
 snowem <path-to>/snowem.conf
 ```
-
 ## Example
 
 Source code of example is available at [here](https://github.com/snowem/sdkjs/example).
