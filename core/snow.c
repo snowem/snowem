@@ -35,38 +35,57 @@
 #include "json-c/json.h"
 #include "websocket/websocket.h"
 
-int
-snw_core_ice_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+uint32_t snw_create_stream(snw_context_t *ctx, uint32_t flowid) {
   snw_log_t *log = ctx->log;
-  json_object *jobj = (json_object*)data;
-  snw_stream_t *stream = 0;
   uint32_t streamid = 0;
-  const char *str = 0;
+  snw_stream_t *stream = 0;
   int is_new = 0;
 
-  //Step1: get stream id from a pool.
+  if (!ctx) return 0;
+
   streamid = snw_set_getid(ctx->stream_mgr);
   if (streamid == 0) {
      ERROR(log, "can not get stream, flowid=%u", flowid);
-     return -1;
+     return 0;
   }
 
   DEBUG(log, "get new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
   stream = snw_stream_get(ctx->stream_cache,streamid,&is_new);
   if (!stream || !is_new) {
     ERROR(log, "no new stream, streamid=%u, is_new=%u, flowid=%u", streamid, is_new, flowid);
-    return -2;
+    return 0;
   }
   stream->flowid = flowid;
 
   DEBUG(log,"create a stream, streamid=%u", streamid);
+
+  return streamid;
+}
+
+int
+snw_core_ice_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  uint32_t streamid = 0;
+  const char *str = 0;
+
+  if (!ctx) return -1;
+
+  //TODO: verify jwt token
+
+  streamid = snw_create_stream(ctx, flowid);
+  if (streamid == 0) {
+    ERROR(log, "can not get stream, flowid=%u", flowid);
+    return -1;
+  }
+
   json_object_object_add(jobj,"streamid",json_object_new_int(streamid));
   json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
   json_object_object_add(jobj,"rc",json_object_new_int(0));
   str = snw_json_msg_to_string(jobj);
   if (!str) return -1;
   DEBUG(log,"create a stream, streamid=%s", str);
-  snw_shmmq_enqueue(ctx->http_task->req_mq,0,str,strlen(str),flowid);
+  snw_shmmq_enqueue(ctx->net_task->req_mq,0,str,strlen(str),flowid);
 
   return 0;
 }
@@ -113,7 +132,7 @@ snw_ice_handler(snw_context_t *ctx, snw_conn_t *conn, json_object *jobj) {
   api = snw_json_msg_get_int(jobj,"api");
   switch(api) {
      case SNW_ICE_CREATE:
-        ret = snw_core_ice_create_msg(ctx,jobj,0,flowid);
+        ret = snw_core_ice_create_msg(ctx, jobj, 0, flowid);
         return ret;
      case SNW_ICE_CONNECT:
         {
@@ -337,6 +356,32 @@ snw_process_msg_from_ice(snw_context_t *ctx, char *buffer, uint32_t len, uint32_
 }
 
 int
+snw_http_ice_create_msg(snw_context_t *ctx, void *data, int len, uint32_t flowid) {
+  snw_log_t *log = ctx->log;
+  json_object *jobj = (json_object*)data;
+  uint32_t streamid = 0;
+  const char *str = 0;
+
+  //TODO: verify jwt token
+
+  streamid = snw_create_stream(ctx, flowid);
+  if (streamid == 0) {
+    ERROR(log, "can not get stream, flowid=%u", flowid);
+    return -1;
+  }
+
+  json_object_object_add(jobj,"streamid",json_object_new_int(streamid));
+  json_object_object_add(jobj,"flowid",json_object_new_int(flowid));
+  json_object_object_add(jobj,"rc",json_object_new_int(0));
+  str = snw_json_msg_to_string(jobj);
+  if (!str) return -1;
+  DEBUG(log,"create a stream, streamid=%s", str);
+  snw_shmmq_enqueue(ctx->http_task->req_mq,0,str,strlen(str),flowid);
+
+  return 0;
+}
+
+int
 snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t flowid) {
    snw_log_t *log = ctx->log;
    json_object *jobj = 0;
@@ -367,7 +412,7 @@ snw_process_msg_from_http(snw_context_t *ctx, char *data, uint32_t len, uint32_t
 
    switch(api) {
      case SNW_ICE_CREATE:
-       snw_core_ice_create_msg(ctx,jobj,0,flowid);
+       snw_http_ice_create_msg(ctx,jobj,0,flowid);
        break;
      default:
        ERROR(log,"unsupported http request, api=%u",api);
@@ -480,10 +525,11 @@ snw_main_process(snw_context_t *ctx) {
    if (ctx == 0) return;
 
    /*initialize main log*/
-   ctx->log = snw_log_init(ctx->main_log_file, ctx->log_level,
-       ctx->log_rotate_num, ctx->log_file_maxsize);
-   if (ctx->log == 0) {
-      exit(-1);
+   if (ctx->main_log_file) {
+     ctx->log = snw_log_init(ctx->main_log_file, ctx->log_level,
+         ctx->log_rotate_num, ctx->log_file_maxsize);
+   } else {
+     ctx->log = 0;
    }
 
    snw_module_init(ctx);
@@ -583,8 +629,10 @@ main(int argc, char** argv, char **envp) {
    snw_task_setup(ctx,CORE2NET_KEY,NET2CORE_KEY,SHAREDMEM_SIZE,
        snw_core_net_cb, snw_net_task_cb);
 
-   snw_task_setup(ctx,CORE2HTTP_KEY,HTTP2CORE_KEY,SHAREDMEM_SIZE,
-       snw_core_http_cb, snw_http_task_cb);
+   if (ctx->http_enabled) {
+     snw_task_setup(ctx,CORE2HTTP_KEY,HTTP2CORE_KEY,SHAREDMEM_SIZE,
+         snw_core_http_cb, snw_http_task_cb);
+   }
 
    setproctitle("master sig %s %s", argv[0], argv[1]);
 

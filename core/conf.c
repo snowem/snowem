@@ -38,22 +38,28 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       exit(0);
    }
 
-   if (config_lookup_string(&cfg, "ice_cert_file", &str)) {
-      ctx->ice_cert_file = strdup(str);
+   if (config_lookup_int(&cfg, "http_enabled", &number)) {
+      ctx->http_enabled = number;
    } else {
-      fprintf(stderr,"ice_cert_file %s not found\n", str);
-      exit(0);
+      ctx->http_enabled = 0;
    }
 
-   if (config_lookup_string(&cfg, "ice_key_file", &str)) {
-      ctx->ice_key_file = strdup(str);
+   if (config_lookup_string(&cfg, "cert_file", &str)) {
+      ctx->cert_file = strdup(str);
    } else {
-      fprintf(stderr,"ice_key_file %s not found\n", str);
-      exit(0);
+      ctx->cert_file = 0;
+   }
+
+   if (config_lookup_string(&cfg, "key_file", &str)) {
+      ctx->key_file = strdup(str);
+   } else {
+      ctx->key_file = 0;
    }
 
    if (config_lookup_string(&cfg, "wss_cert_file", &str)) {
       ctx->wss_cert_file = strdup(str);
+   } else if (ctx->cert_file) {
+       ctx->wss_cert_file = strdup(ctx->cert_file);
    } else {
       fprintf(stderr,"wss_cert_file %s not found\n", str);
       exit(0);
@@ -61,6 +67,8 @@ snw_config_init(snw_context_t *ctx, const char *file) {
 
    if (config_lookup_string(&cfg, "wss_key_file", &str)) {
       ctx->wss_key_file = strdup(str);
+   } else if (ctx->key_file) {
+      ctx->wss_key_file = strdup(ctx->key_file);
    } else {
       fprintf(stderr,"wss_key_file %s not found\n", str);
       exit(0);
@@ -69,14 +77,30 @@ snw_config_init(snw_context_t *ctx, const char *file) {
    if (config_lookup_int(&cfg, "wss_bind_port", &number)) {
       ctx->wss_port = (uint16_t)number;
    } else {
-      fprintf(stderr,"wss_bind_port not found\n");
-      exit(0);
+      ctx->wss_port = 8443;
    }
 
    if (config_lookup_string(&cfg, "wss_bind_ip", &str)) {
       ctx->wss_ip = strdup(str);
    } else {
-      fprintf(stderr,"wss_bind_ip not found\n");
+      ctx->wss_ip = "0.0.0.0";
+   }
+
+   if (config_lookup_string(&cfg, "ice_cert_file", &str)) {
+      ctx->ice_cert_file = strdup(str);
+   } else if (ctx->cert_file) {
+      ctx->ice_cert_file = strdup(ctx->cert_file);
+   } else {
+      fprintf(stderr,"ice_cert_file not found\n");
+      exit(0);
+   }
+
+   if (config_lookup_string(&cfg, "ice_key_file", &str)) {
+      ctx->ice_key_file = strdup(str);
+   } else if (ctx->key_file){
+      ctx->ice_key_file = strdup(ctx->key_file);
+   } else {
+      fprintf(stderr,"ice_key_file not found\n");
       exit(0);
    }
 
@@ -99,25 +123,20 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       ctx->log_rotate_num = 10000000;
    }
 
+   if (config_lookup_string(&cfg, "base_log_path", &str)) {
+      ctx->base_log_path = strdup((str));
+        if (ctx->base_log_path[strlen(str)] == '\\') {
+           char *p = (char*)ctx->base_log_path;
+           p[strlen(str)] = '\0';
+        }
+   } else {
+      ctx->base_log_path = 0;
+   }
+
    if (config_lookup_int(&cfg, "ice_log_enabled", &number)) {
       ctx->ice_log_enabled = number;
    } else {
       ctx->ice_log_enabled = 0;
-   }
-
-   if (config_lookup_string(&cfg, "main_log", &str)) {
-      ctx->main_log_file = strdup(str);
-      ctx->base_log_path = strdup(dirname(strdup(str)));
-   } else {
-      fprintf(stderr,"main_log %s not found\n", str);
-      exit(0);
-   }
-
-   if (config_lookup_string(&cfg, "ice_log", &str)) {
-      ctx->ice_log_file = strdup(str);
-   } else {
-      fprintf(stderr,"main_log %s not found\n", str);
-      exit(0);
    }
 
    if (config_lookup_int(&cfg, "websocket_log_enabled", &number)) {
@@ -126,9 +145,43 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       ctx->websocket_log_enabled = 0;
    }
 
+   if (config_lookup_string(&cfg, "main_log_file", &str)) {
+      ctx->main_log_file = strdup(str);
+   } else if (ctx->base_log_path) {
+        int len = strlen(ctx->base_log_path) + strlen("/snowem.log") + 1;
+        char *tmp = (char*) malloc(len);
+        if (tmp) {
+          snprintf(tmp,len,"%s%s",ctx->base_log_path, "/snowem.log");
+          tmp[len] = '\0';
+          ctx->main_log_file = strdup(tmp);
+        } else {
+          ctx->main_log_file = 0;
+        }
+   } else {
+      ctx->main_log_file = 0;
+   }
+
+   if (config_lookup_string(&cfg, "ice_log_file", &str)) {
+      ctx->ice_log_file = strdup(str);
+   } else {
+      if (ctx->ice_log_enabled != 0) {
+        int len = strlen(ctx->base_log_path) + strlen("/snowem_ice.log") + 1;
+        char *tmp = (char*) malloc(len);
+        if (tmp) {
+          snprintf(tmp,len,"%s%s",ctx->base_log_path,"/snowem_ice.log");
+          tmp[len] = '\0';
+          ctx->ice_log_file = tmp;
+        } else {
+          ctx->ice_log_file = 0;
+        }
+      } else {
+        ctx->ice_log_file = 0;
+      }
+   }
+
    if (config_lookup_string(&cfg, "websocket_log_file", &str)) {
       ctx->websocket_log_file = strdup(str);
-   } else {
+   } else if (ctx->base_log_path) {
       if (ctx->websocket_log_enabled != 0) {
         int len = strlen(ctx->base_log_path) + strlen("/snowem_websocket.log") + 1;
         char *tmp = (char*) malloc(len);
@@ -142,36 +195,49 @@ snw_config_init(snw_context_t *ctx, const char *file) {
       } else {
         ctx->websocket_log_file = 0;
       }
+   } else {
+      ctx->websocket_log_file = 0;
    }
 
-   if (config_lookup_int(&cfg, "http_log_enabled", &number)) {
-      ctx->http_log_enabled = number;
-   } else {
-      ctx->http_log_enabled = 0;
-   }
 
-   if (config_lookup_string(&cfg, "http_log_file", &str)) {
-      ctx->http_log_file = strdup(str);
-   } else {
-      if (ctx->http_log_enabled != 0) {
-        int len = strlen(ctx->base_log_path) + strlen("/snowem_http.log") + 1;
-        char *tmp = (char*) malloc(len);
-        if (tmp) {
-          snprintf(tmp,len,"%s%s",ctx->base_log_path,"/snowem_http.log");
-          tmp[len] = '\0';
-          ctx->http_log_file = tmp;
+   if (ctx->http_enabled) {
+     if (config_lookup_int(&cfg, "http_log_enabled", &number)) {
+        ctx->http_log_enabled = number;
+     } else {
+        ctx->http_log_enabled = 0;
+     }
+
+     if (config_lookup_int(&cfg, "http_bind_port", &number)) {
+        ctx->http_port = (uint16_t)number;
+     } else {
+        ctx->http_port = 8868;
+     }
+
+     if (config_lookup_string(&cfg, "http_bind_ip", &str)) {
+        ctx->http_ip = strdup(str);
+     } else {
+        ctx->http_ip = strdup(ctx->wss_ip);
+     }
+
+     if (config_lookup_string(&cfg, "http_log_file", &str)) {
+        ctx->http_log_file = strdup(str);
+     } else if (ctx->base_log_path) {
+        if (ctx->http_log_enabled != 0) {
+          int len = strlen(ctx->base_log_path) + strlen("/snowem_http.log") + 1;
+          char *tmp = (char*) malloc(len);
+          if (tmp) {
+            snprintf(tmp,len,"%s%s",ctx->base_log_path,"/snowem_http.log");
+            tmp[len] = '\0';
+            ctx->http_log_file = tmp;
+          } else {
+            ctx->http_log_file = 0;
+          }
         } else {
           ctx->http_log_file = 0;
         }
-      } else {
-        ctx->http_log_file = 0;
-      }
-   }
-
-   if (config_lookup_int(&cfg, "http_log_enabled", &number)) {
-      ctx->http_log_enabled = number;
-   } else {
-      ctx->http_log_enabled = 0;
+     } else {
+       ctx->http_log_file = 0;
+     }
    }
 
    if (config_lookup_int(&cfg, "recording_enabled", &number)) {

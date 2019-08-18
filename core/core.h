@@ -63,9 +63,15 @@ struct snw_context {
    SSL_CTX            *ssl_ctx;
 
    const char         *config_file;
+
+   const char         *cert_file;
+   const char         *key_file;
    const char         *ice_cert_file;
    const char         *ice_key_file;
-
+   const char         *http_cert_file;
+   const char         *http_key_file;
+   const char         *http_ip;
+   uint16_t            http_port;
    const char         *wss_cert_file;
    const char         *wss_key_file;
    const char         *wss_ip;
@@ -87,7 +93,8 @@ struct snw_context {
    uint32_t            http_log_enabled:1;
    uint32_t            libevent_log_enabled:1;
    uint32_t            recording_enabled:1;
-   uint32_t            reserved:27;
+   uint32_t            http_enabled:1;
+   uint32_t            reserved:26;
 
    /* task contexts */
    snw_task_ctx_t *http_task;
