@@ -252,10 +252,9 @@ snw_net_task_cb(snw_task_ctx_t *task_ctx, void *data) {
       exit(-2);
    }
 
-   ws_ctx->log = snw_log_init(ctx->websocket_log_file, ctx->log_level,
-       ctx->log_rotate_num, ctx->log_file_maxsize);
-   if (ws_ctx->log == 0) {
-      exit(-1);
+   if (ctx->websocket_log_file) {
+     ws_ctx->log = snw_log_init(ctx->websocket_log_file, ctx->log_level,
+         ctx->log_rotate_num, ctx->log_file_maxsize);
    }
 
    ws_ctx->wss_cert_file = strdup(ctx->wss_cert_file);

@@ -33,13 +33,15 @@
 
 void
 snw_http_init_log(snw_http_context_t *ctx) {
+
+  if (ctx->ctx->http_log_file) {
    ctx->log = snw_log_init(ctx->ctx->http_log_file, ctx->ctx->log_level,
        ctx->ctx->log_rotate_num, ctx->ctx->log_file_maxsize);
-   if (ctx->log == 0) {
-      exit(-1);   
-   }
+  } else {
+    ctx->log = 0;
+  }
 
-   return;
+  return;
 }
 
 int

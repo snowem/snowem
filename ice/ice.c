@@ -182,13 +182,14 @@ ice_rtp_established(snw_ice_session_t *session) {
 
 void
 snw_ice_init_log(snw_context_t *ctx) {
-   ctx->log = snw_log_init(ctx->ice_log_file, ctx->log_level,
-       ctx->log_rotate_num, ctx->log_file_maxsize);
-   if (ctx->log == 0) {
-      exit(-1);
-   }
 
-   return;
+  if (ctx->ice_log_file) {
+    ctx->log = snw_log_init(ctx->ice_log_file, ctx->log_level,
+         ctx->log_rotate_num, ctx->log_file_maxsize);
+  } else {
+    ctx->log = 0;
+  }
+  return;
 }
 
 int
