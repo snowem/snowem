@@ -728,7 +728,7 @@ snw_ice_sdp_get_local_credentials(snw_ice_session_t *session, snw_ice_stream_t *
    sdp_attribute_t *a;
    const char *remote_user = NULL, *remote_pass = NULL;
    const char *remote_hashing = NULL, *remote_fingerprint = NULL;
-   
+
    if (stream == NULL || m == NULL)
       return -1;
    log = session->ice_ctx->log;
@@ -768,14 +768,30 @@ snw_ice_sdp_get_local_credentials(snw_ice_session_t *session, snw_ice_stream_t *
       a = a->a_next;
    }
 
-   if (!remote_user || !remote_pass || !remote_fingerprint || !remote_hashing) {
-      return -2;
+   if (remote_user) {
+      memcpy(stream->remote_user,remote_user,strlen(remote_user));
+   } else {
+     if (session->remote_user)
+        memcpy(stream->remote_user, session->remote_user,strlen(session->remote_user));
    }
-
-   memcpy(stream->remote_hashing,remote_hashing,strlen(remote_hashing));
-   memcpy(stream->remote_fingerprint,remote_fingerprint,strlen(remote_fingerprint));
-   memcpy(stream->remote_user,remote_user,strlen(remote_user));
-   memcpy(stream->remote_pass,remote_pass,strlen(remote_pass));
+   if (remote_pass) {
+      memcpy(stream->remote_pass, remote_pass, strlen(remote_pass));
+   } else {
+     if (session->remote_pass)
+        memcpy(stream->remote_pass, session->remote_pass, strlen(session->remote_pass));
+   }
+   if (remote_hashing) {
+      memcpy(stream->remote_hashing, remote_hashing, strlen(remote_hashing));
+   } else {
+     if (session->remote_hashing)
+        memcpy(stream->remote_hashing, session->remote_hashing, strlen(session->remote_hashing));
+   }
+   if (remote_fingerprint) {
+      memcpy(stream->remote_fingerprint, remote_fingerprint, strlen(remote_fingerprint));
+   } else {
+      if (session->remote_fingerprint)
+         memcpy(stream->remote_fingerprint, session->remote_fingerprint, strlen(session->remote_fingerprint));
+   }
 
    TRACE(log, "stream info, stream=%p",stream);
    TRACE(log, "stream info, rhash=%s",stream->remote_hashing);
@@ -806,7 +822,7 @@ snw_ice_sdp_get_global_credentials(snw_ice_session_t *session, sdp_session_t *re
                remote_fingerprint = a->a_value + strlen("sha-1 ");
             } else {
                //DEBUG("unknown algorithm, s=%s",a->a_name);
-            }    
+            }
          } else if(!strcasecmp(a->a_name, "ice-ufrag")) {
             remote_user = a->a_value;
          } else if(!strcasecmp(a->a_name, "ice-pwd")) {
@@ -816,24 +832,15 @@ snw_ice_sdp_get_global_credentials(snw_ice_session_t *session, sdp_session_t *re
       a = a->a_next;
    }
 
-   if (!remote_user || !remote_pass || !remote_hashing || !remote_fingerprint) {
-      //ERROR("global credentials not found");
-      return -1;
-   }
-
-   memcpy(session->remote_user,remote_user,strlen(remote_user));
-   memcpy(session->remote_pass,remote_pass,strlen(remote_pass));
-   memcpy(session->remote_hashing,remote_hashing,strlen(remote_hashing));
-   memcpy(session->remote_fingerprint,remote_fingerprint,strlen(remote_fingerprint));
-
-   //DEBUG("global credentials, ruser=%s, rpass=%s, rhashing=%s, rfingerprint=%s",
-   //      session->remote_user, session->remote_pass, 
-   //      session->remote_hashing, session->remote_fingerprint);
+   if (remote_user) memcpy(session->remote_user,remote_user,strlen(remote_user));
+   if (remote_pass) memcpy(session->remote_pass,remote_pass,strlen(remote_pass));
+   if (remote_hashing) memcpy(session->remote_hashing,remote_hashing,strlen(remote_hashing));
+   if (remote_fingerprint) memcpy(session->remote_fingerprint,remote_fingerprint,strlen(remote_fingerprint));
 
    return 0;
 }
 
-int 
+int
 snw_ice_sdp_get_candidate(snw_ice_session_t *session, snw_ice_stream_t *stream, sdp_media_t *m) {
    sdp_attribute_t *a = NULL;
 
@@ -926,7 +933,7 @@ snw_ice_sdp_handle_answer(snw_ice_session_t *session, const char *sdp) {
          m = m->m_next;
          continue;
       }
-      
+
       snw_ice_sdp_get_local_credentials(session,stream,m);
       snw_ice_sdp_get_candidate(session,stream,m);
       m = m->m_next;
